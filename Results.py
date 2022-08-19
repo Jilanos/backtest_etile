@@ -33,6 +33,7 @@ class Results():
         self.bestTestedModel = -199999
         self.bestTrainParams= None
         self.bestValidParams= None
+        self.bestValidStd = 0
         
         self.bestALLParamsres= []
         #liste des key des params
@@ -45,9 +46,24 @@ class Results():
         self.PRINTED_Valid = "cyan"
         self.PRINTED_Train = "cyan"
         self.countSincePrinted=0
-    
-    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array) :
+        self.lastTrainPerf = 0
+        self.lastTrainStd = 0
+        self.lastValidPerf = 0
+        self.lastValidStd = 0
+        self.lastTestPerf = 0
+        
+        
+
+        
+        
+    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array,valid_array) :
         self.params.append(params)
+        self.lastTrainPerf = trainPerformance
+        self.lastTrainStd = np.std(np.array(train_array))
+        self.lastValidPerf = validPerformance
+        self.lastValidStd = np.std(np.array(valid_array))
+        self.lastTestPerf = testPerformance
+        
         if trainPerformance==0:
             trainPerformance=-99999
         if validPerformance==0:
@@ -70,6 +86,7 @@ class Results():
             self.PRINTED_Valid = "green"
             self.bestValidedModel=validPerformance
             self.bestValidParams=params
+            self.bestValidStd = np.std(np.array(valid_array))
             self.bestTestedModel=testPerformance
             self.bestTestParams=params
         

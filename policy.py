@@ -315,15 +315,16 @@ class Policy_03(Policy) :
         self.params = {
             "TP" : 1.5,#trial.suggest_float('TP',0.2,5),
             "SL" : 0.5,#trial.suggest_float('SL',1,8),
-            "weight_0" : trial.suggest_float('weight_0', -1, 1),
-            "weight_1" : trial.suggest_float('weight_1', -1, 1),
+            "weight_0" : trial.suggest_float('weight_0', 0, 1),#0,
+            "weight_1" : 0,#trial.suggest_float('weight_1', -1, 1),
             "weight_2" : trial.suggest_float('weight_2', -1, 1),
-            "weight_3" : trial.suggest_float('weight_3', -1, 1),
+            "weight_3" : 0,#trial.suggest_float('weight_3', -1, 1),
             "weight_4" : trial.suggest_float('weight_4', -1, 1),
-            "weight_5" : trial.suggest_float('weight_5', -1, 1),
+            "weight_5" : 0,#trial.suggest_float('weight_5', -1, 1),
             "weight_6" : trial.suggest_float('weight_6', -1, 1),
-            "Theta":    trial.suggest_int("Theta", 5, 9,2),
-            "Theta_bis":    trial.suggest_int("Theta_bis", 2,6),
+            "Theta":    trial.suggest_int("Theta", 3, 7,2),
+            "Theta_bis":    trial.suggest_int("Theta_bis", 3, 7,2),
+            "Theta_RSI":    14,
             "normFactor" : trial.suggest_float('normFactor', 0.001, 100),
         }
 
@@ -343,9 +344,9 @@ class Policy_03(Policy) :
             "Theta_bis" : self.params["Theta_bis"],
             "Theta_der" : 3,
             "Theta_der2" : 3,
-            "Theta_RSI" : 14}
-        val = self.params["weight_0"] *   indic.get_Indicator(param, "derivé")
-        val += self.params["weight_1"] *  indic.get_Indicator(param, "dérivé2")
+            "Theta_RSI" : self.params["Theta_RSI"]}
+        
+        val = self.params["weight_1"] *  indic.get_Indicator(param, "dérivé2")
         val += self.params["weight_2"] * indic.get_Indicator(param, "RSI")
         val += self.params["weight_3"] * indic.get_Indicator(param, "derive_diff_close")
         val += self.params["weight_4"] *  indic.get_Indicator(param, "sign_diff_moy")
@@ -354,7 +355,7 @@ class Policy_03(Policy) :
         param_pese=["derivé","dérivé2","RSI","derive_diff_close","sign_diff_moy","volume","croisement_moyennes"]
         
         poids=[100*(self.params["weight_"+str(i)] *  indic.get_Indicator(param,param_pese[i]))/val for i in range(7)]
-        
+        val /= self.params["weight_0"] *   indic.get_Indicator(param, "std_A")/indic.get_Indicator(param, "std_B")
         val /= self.params["normFactor"]
         self.val.append(val)
         if val > 1 :

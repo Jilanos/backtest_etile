@@ -17,7 +17,7 @@ import datetime
 import os
 import time
 import sys
-
+import json
 
 
 class Optimizer() :
@@ -51,6 +51,23 @@ class Optimizer() :
         self.folder_name=path+"/Results/"+data_name+"/"
         if not os.path.exists(self.folder_name):
             os.makedirs(self.folder_name)
+        self.text_file = open(self.folder_name+"log.txt",'a')
+        self.text_file.close()
+        
+        
+    def print_save(self,text : str):
+        self.text_file = open(self.folder_name+"log.txt",'a')
+        self.text_file.write(text+"\n")
+        self.text_file.close()
+    
+    
+    def save_param(self):
+        self.text_file = open(self.folder_name+"param.txt",'a')
+        txtt="Trial: {} ==>  ".format(train_number)+"Last Train: {}%, std : {}".format(np.round(self._results.lastTrainPerf, decimals=3),np.round(self._results.lastTrainStd, decimals=4))+" ; Last Valid: {}%, std : {}".format(np.round(self._results.lastValidPerf, decimals=4),np.round(self._results.lastValidStd, decimals=4))+" => Test: {}%".format(np.round(self._results.lastTestPerf, decimals=4))
+        self.text_file.write(txtt+"\n")
+        self.text_file.write(json.dumps(self._results.params[-1]))
+        self.text_file.write("\n\n")
+        self.text_file.close()
         
         
     def runExperiment(self, params : dict, dataset : str = "train", sequenceLength : int = 1000, sav : bool = False):
@@ -66,7 +83,7 @@ class Optimizer() :
             count,wins,loss=0,0,0
         for closeSequence, highSequence, lowSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=0.08)
+            wallet = Wallet(fees=0.01)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
@@ -122,7 +139,10 @@ class Optimizer() :
         if not(self._results.PRINTED) :
             self._results.PRINTED=True
             self._results.countSincePrinted=0
-            print(colored("Trial: {} ==>  ".format(train_number),"cyan"),colored("Best Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4)),self._results.PRINTED_Train),colored(" ; Best Valid: {}%".format(np.round(self._results.bestValidedModel, decimals=4)),self._results.PRINTED_Valid),colored(" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4)), 'cyan'))
+            print(colored("Trial: {} ==>  ".format(train_number),"cyan"),colored("Best Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4)),self._results.PRINTED_Train),colored(" ; Best Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4)),self._results.PRINTED_Valid),colored(" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4)), 'cyan'))
+            txtt="Trial: {} ==>  ".format(train_number)+"Best Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4))+" ; Best Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4))+" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4))
+            self.print_save(txtt)
+            self.save_param()
         # elif self._results.countSincePrinted>100:
         #     self._results.countSincePrinted=0
         #     dt=time.time()-self.time
@@ -146,7 +166,7 @@ class Optimizer() :
             for ind in range(7):
                 self.paramImpact[ind].append(np.mean(self.paramTemp[ind]))
         
-        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr)
+        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr,valid_arr)
 
 #             self.bestTestParams=params
 
@@ -168,8 +188,8 @@ class Optimizer() :
         
         indices,self._data.ratio=createIndicator_bis(self._data)#self._data
         
-        for z in [5,7,9]:
-            for e in [2,3,4,5,6]:
+        for z in [3,5,7]:
+            for e in [3,5,7]:
                 hyperP = {
                     "Theta" : z,
                     "Theta_bis" : e,
@@ -191,7 +211,7 @@ class Optimizer() :
             self._data.data[j].indic=indices[j]
         
         print(colored("Study launch for {} minutes, with {} partitions ".format(np.round(temps/60,decimals=2),self._data.numPartitions),"green"))
-        
+        self.print_save("Study launch for {} minutes, with {} partitions ".format(np.round(temps/60,decimals=2),self._data.numPartitions))
         debut=datetime.datetime.now()
         sf=int((debut.second+temps)%60)
         mf=(int((debut.second+temps)/60)+debut.minute)%60
@@ -209,13 +229,17 @@ class Optimizer() :
         #self.plotPerformances()
         self._results.plotPerformances(self.folder_name)
         self._results.plotParams(self.folder_name)
+        param_pese=["derivé","dérivé seconde","RSI","derive_diff_close","sign_diff_moy","volume","croisement_moyennes"]
+
         compt=0
-        for tab in self.paramImpact:
-            plt.figure()
-            plt.title("indicateur nr° "+str(compt)+" moy="+str(np.mean(np.abs(tab))))
+        for i,tab in enumerate(self.paramImpact):
+            plt.figure(figsize=(20,11))
+            plt.title("influence de : "+param_pese[i]+" au cours des trades"+" moy="+str(np.round(np.mean(np.abs(tab)),decimals=5)))
             plt.grid()
             plt.plot(tab)
             compt+=1
+            plt.savefig(self.folder_name+"poids_"+param_pese[i],bbox_inches='tight')
+            plt.close()
             
         self.runExperiment(self._results.bestValidParams,"test",sav=True)
 
@@ -240,14 +264,18 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    plt.close("all")
     ignoreTimer=50
-    data_name="test_0fees_RR3_CORRECTED"
     data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="3m", numPartitions=11, reload=True,ignoreTimer=ignoreTimer)
     data.plot() # and plot it
-    train_number=0
-    optimizer = Optimizer(data, Policy_03, ignoreTimer=ignoreTimer,data_name=data_name)
-    optimizer.fit(60*30)
-    #print("Fin algo")
+    for j in range(4):
+        plt.close("all")
+        train_number=0
+        opti_name="test_01fees_RR3_stdtest_div_{}".format(j+1)
+        #opti_name="test"
+        optimizer = Optimizer(data, Policy_03, ignoreTimer=ignoreTimer,data_name=opti_name)
+        optimizer.fit(60*24)
+        print("Fin algo : {} executions".format(train_number))
+        optimizer.print_save("Fin algo : {} executions".format(train_number))
+
     #optimizer.runExperiment(optimizer.bestTestParams,"test",sav=True)
 

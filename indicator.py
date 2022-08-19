@@ -190,13 +190,44 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
                 value=calculate_ema(indicateurs[i].get_Indicator(hyperP,"derivé"), indicateurs[i-1].get_Indicator(hyperP,"derive_moy_2"), hyperP["Theta_der2"])
             indicateurs[i].addIndicator(hyperP,value,"derive_moy_2")
 
+    if not(indicateurs[-1].calculated(hyperP,'std_A')):
+        for i in range(len(indicateurs)):
+            if i<=6:
+                value=1
+            else:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"closeV") for j in range(6)]
+                value = np.std(np.array(array))
+                
+            indicateurs[i].addIndicator(hyperP,value,"std_A")
+            
+            
+    if not(indicateurs[-1].calculated(hyperP,'std_B')):
+        for i in range(len(indicateurs)):
+            if i<=45:
+                value=1
+            else:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"closeV") for j in range(45)]
+                value = np.std(np.array(array))
+                
+            indicateurs[i].addIndicator(hyperP,value,"std_B")
+
     if not(indicateurs[-1].calculated(hyperP,'RSI')):
         for i in range(len(indicateurs)):
             if i<=0:
                 value=50
             else:
-                value=(computeRSI([indicateurs[i-j].get_Indicator(hyperP,"closeV") for j in range(hyperP["Theta_RSI"])],d=hyperP["Theta_RSI"])- 50) / 6
-            indicateurs[i].addIndicator(hyperP,value,"RSI")
+                value=(computeRSI([indicateurs[i-j].get_Indicator(hyperP,"closeV") for j in range(hyperP["Theta_RSI"])],d=hyperP["Theta_RSI"])- 50)
+                if value >35:
+                    value=(value-20)*2
+                elif value >=20:
+                    value=(value-20)
+                elif value >-20:
+                    value=0
+                elif value >=-35:
+                    value=(value+20)
+                else:
+                    value=(value+20)*2
+            indicateurs[i].addIndicator(hyperP,value/6,"RSI")
             
     if not(indicateurs[-1].calculated(hyperP,'croisement_moyennes')):
         for i in range(len(indicateurs)):

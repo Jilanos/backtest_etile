@@ -24,8 +24,8 @@ import sys
 
 plt.close("all")
 ignoreTimer=50
-data_name="backtest_0fees_RR3_bis"
-data = loadData(paire="BTCBUSD",trainProp = 0.9, validProp = 0.05, testProp = 0.05, sequenceLength=4*12*24*30*4, interval_str="5m", numPartitions=6, reload=True,ignoreTimer=ignoreTimer)
+data_name="backtest_01fees_RR3_stddiv_test"
+data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="3m", numPartitions=9, reload=True,ignoreTimer=ignoreTimer)
 data.plot() # and plot it
 
 
@@ -38,11 +38,9 @@ policyClass = Policy_03
 
 
 
-params = {"TP": 1.5, "SL": 0.5, "weight_0": -0.8984973093494166, "weight_1": -0.5987957121806149, "weight_2": -0.41542207816539334, "weight_3": -0.8440378357068721, "weight_4": 0.9668199838803251, "weight_5": -0.14061310608867644, "weight_6": -0.6871225736151407, "Theta": 7, "Theta_bis": 4, "normFactor": 3.477812718328812}
-
 
 params = {'TP': 1.5,
- 'SL': 0.5,
+ 'SL': 0.6,
  'weight_0': -0.4183485221852743,
  'weight_1': -0.5660605060891415,
  'weight_2': -0.8891577335759198,
@@ -55,12 +53,15 @@ params = {'TP': 1.5,
  'normFactor': 4.949489013188023}
 
 
+params = {"TP": 3, "SL": 0.5, "weight_0": 0.5925377451557796, "weight_1": 0, "weight_2": -0.28148749244735105, "weight_3": 0, "weight_4": -0.7002733979273887, "weight_5": 0, "weight_6": 0.8545965859654405, "Theta": 3, "Theta_bis": 3, "Theta_RSI": 14, "normFactor": 51.8352677444534}
+
+
 hyperP = {
     "Theta" : params["Theta"],
     "Theta_bis" : params["Theta_bis"],
     "Theta_der" : 3,
     "Theta_der2" : 3,
-    "Theta_RSI" : 14}
+    "Theta_RSI" : params["Theta_RSI"]}
 
 
 #création des indicateurs pertinents pour la policy
@@ -91,6 +92,7 @@ dataset = "train"    # Get the proper data
 if (dataset == "train") : closeSequences, highSequences, lowSequences, volumeSequences, indics= data.trainSequences("close"), data.trainSequences("high"), data.trainSequences("low"),data.trainSequences("volume"),data.trainSequences("indic")
 # Compute the performance of the policy on all the sequences
 totalPerformance = 0 # Sum of the performances over all the sequences
+tot_array = []
 UnitCount=0
 paramTemp=[[] for i in range(7)] 
 paramImpact=[[] for i in range(7)]
@@ -126,6 +128,9 @@ for closeSequence, highSequence, lowSequence, volumeSequence, indic in zip(close
     policy.plot(closeSeq,folder_name,ratio,name=name,ignoreTimer = 0)
     #print("plot  +  "+ name)
     totalPerformance += agent.wallet.profit(closeValue)
+    tot_array.append(agent.wallet.profit(closeValue))
+for i in range(len(tot_array)):
+    tot_array[i] = tot_array[i]/UnitCount*data.perday
 
     
 if wins+loss>0:
@@ -133,34 +138,22 @@ if wins+loss>0:
     
 else:
     wr=-1
+tot_array = np.array(tot_array)
 gain=np.round(totalPerformance/(UnitCount-data.numPartitions*ignoreTimer)*data.perday,decimals=3)
 tradeRate=np.round((wins+loss)/(UnitCount-data.numPartitions*ignoreTimer)*data.perday,decimals=2)
-print(colored("Résultat dans le test final : WR : {}%, gain quotidien {}%, nbr de trades quotidiens : {}".format(wr,gain, tradeRate),"green"))
+print(colored("Résultat dans le test final : WR : {}%, gain quotidien {}%, nbr de trades quotidiens : {}\nmoyenne des partition : {}, std : {}".format(wr,gain, tradeRate,np.round(np.mean(tot_array),decimals=3), np.round(np.std(tot_array),decimals=4)),"green"))
 #print("totalunit : {}, total value : {}, resultat {}, perday {}".format(UnitCount,totalPerformance,totalPerformance/UnitCount*self._data.perday,self._data.perday))
 out = totalPerformance/(UnitCount-data.numPartitions*ignoreTimer)*data.perday 
 
-compt=0
-for tab in paramTemp:
-    plt.figure()
-    plt.title("indicateur nr° "+str(compt)+" moy="+str(np.mean(np.abs(tab))))
-    plt.grid()
-    plt.plot(tab)
-    compt+=1
-# results.plotPerformances(folder_name)
-# results.plotParams(folder_name)
-sys.exit()
-self._study.optimize(self.objective, timeout=temps,callbacks=[self.optiPrint])
-    # After fitting, plot the data to visualize the training
-#self.plotPerformances()
 
-compt=0
-for tab in self.paramImpact:
-    plt.figure()
-    plt.title("indicateur nr° "+str(compt)+" moy="+str(np.mean(np.abs(tab))))
-    plt.grid()
-    plt.plot(tab)
-    compt+=1
-    
-self.runExperiment(self._results.bestValidParams,"test",sav=True)
 
+# param_pese=["derivé","dérivé seconde","RSI","derive_diff_close","sign_diff_moy","volume","croisement_moyennes"]
+# compt=0
+# for i,tab in enumerate(paramTemp):
+#     plt.figure(figsize=(20,11))
+#     plt.title("influence de : "+param_pese[i]+" au cours des trades"+" moy="+str(np.round(np.mean(np.abs(tab)),decimals=5)))
+#     plt.grid()
+#     plt.plot(tab)
+#     compt+=1
+#     plt.savefig(folder_name+"poids_"+param_pese[i],bbox_inches='tight')
 
