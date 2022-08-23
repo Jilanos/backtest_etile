@@ -6,6 +6,8 @@ from bet import Bet # For type checking
 from optuna import Trial # for type checking
 from regularizer import Regularizer_EMA, Regularizer_AvgStd, Derivator
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
 
 class Policy() :
 
@@ -36,139 +38,81 @@ class Policy_01(Policy) :
     def __init__(self) :
         self.ratio=None
         self.val = []
-        self.past = []
-        self.RSI = []
-        self.pastVolume = []
-        self.derive1 = []
-        self.derive2 = []
-        self.pastMOY = []
-        self.pastMOYbis = []
-        self.pastMOYgap = []
-        self.pastMOYgapder = []
-        self.derive1MOY = []
-        self.derive2MOY = []
+        self.count=0
         self.entryPrice=[]
         self.wins=[]
         self.loss=[]
         self.moneyToBet = 100
         self.params= {}
         
+        self.weight=[]
+        
 
 
     def sampleFromTrial(self, trial : Trial) :
             # Sample the policy space and return the associated params
-# =============================================================================
-#         self.params = {
-#             "Theta" : trial.suggest_float('Theta', 4, 13),
-#             "TP" : 1,#trial.suggest_float('TP',0.2,5),
-#             "SL" : 1,#trial.suggest_float('SL',1,8),
-#             "Theta_bis" : trial.suggest_float('Theta_bis',1.5,4),
-#             "Theta_der" : trial.suggest_float('Theta_der',2,10),
-#             "Theta_der2" : trial.suggest_float('Theta_der2',2,10),
-#             "Theta_RSI" : 14,
-#             "weight_0" : trial.suggest_float('weight_0', -1, 1),
-#             "weight_1" : trial.suggest_float('weight_1', -1, 1),
-#             "weight_2" : trial.suggest_float('weight_2', -1, 1),
-#             "weight_3" : trial.suggest_float('weight_3', -1, 1),
-#             "weight_4" : trial.suggest_float('weight_4', -1, 1),
-#             "weight_5" : 0,
-#             "normFactor" : trial.suggest_float('normFactor', 0.001, 100),
-#         }
-# =============================================================================
-       self.params = {
-            "Theta" : trial.suggest_float('Theta', 4, 13),
-            "TP" : trial.suggest_float('TP', 0.2, 5),
-            "SL" : trial.suggest_float('SL', 1, 8),
-            "Theta_bis" : 3,
-            "Theta_der" : 5,
-            "Theta_der2" : 5,
-            "Theta_RSI" : 14,
-            "weight_0" : trial.suggest_float('weight_0', -1, 1),
-            "weight_1" : trial.suggest_float('weight_1', -1, 1),
-            "weight_2" : trial.suggest_float('weight_2', -1, 1),
-            "weight_3" : trial.suggest_float('weight_3', -1, 1),
-            "weight_4" : trial.suggest_float('weight_4', -1, 1),
-            "normFactor" : trial.suggest_float('normFactor', 0.01, 1000),
+
+        self.params = {
+            "TP" : trial.suggest_int("TP", 5, 15)/10,#trial.suggest_float('TP',0.2,5),
+            "SL" : trial.suggest_int("SL", 2, 6)/10,#trial.suggest_float('SL',1,8),
+            "revert" : trial.suggest_int("revert", -1, 1,2),
+            # "weight_0" : 0,#trial.suggest_float('weight_0', 0, 1),#0,
+            # "weight_1" : 0,#trial.suggest_float('weight_1', -1, 1),
+            # "weight_2" :0,#ttrial.suggest_float('weight_2', -1, 1),
+            # "weight_3" : 0,#trial.suggest_float('weight_3', -1, 1),
+            # "weight_4" : 0,#trial.suggest_float('weight_4', -1, 1),
+            # "weight_5" : 0,#trial.suggest_float('weight_5', -1, 1),
+            # "weight_6" : 0,#trial.suggest_float('weight_6', -1, 1),
+            # "Theta":    3,#trial.suggest_int("Theta", 3, 7,2),
+            # "Theta_bis":    3,#trial.suggest_int("Theta_bis", 3, 7,2),
+            # "Theta_RSI":    14,
+            "Theta_C" :    trial.suggest_int("Theta_C", 1, 66,5),
+            "seuil_der" :    trial.suggest_float("seuil_der", 0,1),
+            # "normFactor" : 0,#trial.suggest_float('normFactor', 0.001, 100),
         }
 
 
-    def calculate_ema(self, newPrice : float, oldPrice : float, days : int = 10, smoothing : float = 2):
-        return (newPrice * (smoothing / (1 + days))) + oldPrice * (1 - (smoothing / (1 + days)))
-
-
-    def computeDerivative(self, values : list) :
-        return [values[valueIndex] - values[valueIndex-1] for valueIndex in range(len(values)) if valueIndex >= 1]
-
-
-    def computeRSI(self, d : int = 14) :
-        if len(self.derive1) < d :
-            return 50
-        gp = 0
-        lp = 0
-        for k in range(d):
-            if self.derive1[-(1 + k)] > 0 :
-                gp += self.derive1[-(1 + k)]
-            elif self.derive1[-(1 + k)] < 0 :
-                lp -= self.derive1[-(1 + k)]
-        if lp <= 0 :
-            return 100
-        else :
-            RS = gp / lp
-            return 100 - 100 / (1 + RS)
-
-
-    def betToMake(self, priceRegularized : float, highestRegularized : float, lowestRegularized : float, volume : float, timer : int, bet : Bet) :
-        if self.ratio == None :
-            self.past.append(1)
-            self.ratio = priceRegularized
-        else:
-            self.past.append(priceRegularized / self.ratio)
-        self.pastVolume.append(volume)
-        if len(self.past) >= 2 :
-            self.derive1.append(self.past[-1] - self.past[-2])
-        if len(self.derive1) >= 2 :
-            self.derive2.append(self.derive1[-1] - self.derive1[-2])
-
-        if len(self.past) == 1 :
-            self.pastMOY.append(self.past[-1])
-        else:
-            self.pastMOY.append(self.calculate_ema(self.past[-1], self.pastMOY[-1], days=self.params["Theta"]))
-        if len(self.past) == 1 :
-            self.pastMOYbis.append(self.past[-1])
-        else:
-            self.pastMOYbis.append(self.calculate_ema(self.past[-1], self.pastMOYbis[-1], days=self.params["Theta"] * self.params["Theta_bis"]))
-
-        self.pastMOYgap.append(self.pastMOY[-1] - self.pastMOYbis[-1])
-        if len(self.pastMOYgap) >= 2 :
-            self.pastMOYgapder.append(self.pastMOYgap[-1] - self.pastMOYgap[-2])
-            
-
-        if len(self.derive1) == 1 :
-            self.derive1MOY.append(self.derive1[-1])
-        elif len(self.derive1) > 1 :
-            self.derive1MOY.append(self.calculate_ema(self.derive1[-1], self.derive1MOY[-1], days=self.params["Theta_der"]))
-        if len(self.derive2) == 1 :
-            self.derive2MOY.append(self.derive2[-1])
-        elif len(self.derive2) > 1 :
-            self.derive2MOY.append(self.calculate_ema(self.derive2[-1], self.derive2MOY[-1], days=self.params["Theta_der2"]))
-        self.RSI.append(self.computeRSI(d=self.params["Theta_RSI"]))
-
-        if (timer != 0 or bet != None) :
+    def betToMake(self, priceRegularized : float,indic, highestRegularized : float, lowestRegularized : float, volume : float, bet : Bet) :
+        self.count+=1
+        if (bet != None) :
             return "", None, None, None
+        #print(indic)
+# =============================================================================
+#         key_derive_diff_moy='derive_diff_close'+str(self.params["Theta"])+'_'+str(self.params["Theta_bis"])
+#         key_signe_diff_moy='sign_diff_moy'+str(self.params["Theta"])+'_'+str(self.params["Theta_bis"])
+#         key_croisement_moyennes='croisement_moyennes'+str(self.params["Theta"])+'_'+str(self.params["Theta_bis"])
+# =============================================================================
+        param = {
+            "Theta" : 3,
+            "Theta_bis" : 3,
+            "Theta_der" : 3,
+            "Theta_der2" : 3,
+            "Theta_RSI" : 14,
+            "Theta_C" : self.params["Theta_C"]}
+        val = 0
+        if np.sign(indic.get_Indicator(param, "touch_bollinger")) ==self.params["revert"] and np.sign(indic.get_Indicator(param, "der_moy_C")) ==1:
+            #print("try long : ",indic.get_Indicator(param, "der_moy_C"),self.params["seuil_der"])
+            if abs(indic.get_Indicator(param, "der_moy_C"))*1000>self.params["seuil_der"]:
+                val = 1
+                #print("Sucess Long")
+        elif np.sign(indic.get_Indicator(param, "touch_bollinger")) ==-self.params["revert"] and np.sign(indic.get_Indicator(param, "der_moy_C")) ==-1:
+            #print("try long : ",indic.get_Indicator(param, "der_moy_C"),self.params["seuil_der"])
+            if abs(indic.get_Indicator(param, "der_moy_C"))*1000>self.params["seuil_der"]:
+                val= -1
+                #print("Sucess Short")
 
-        val = self.params["weight_0"] *  np.sqrt(np.sqrt(np.abs(self.derive1MOY[-1]))) * np.sign(self.derive1MOY[-1])
-        val += self.params["weight_1"] *  np.sqrt(np.sqrt(np.abs(self.derive2MOY[-1]))) * np.sign(self.derive2MOY[-1])
-        val += self.params["weight_2"] *  (self.RSI[-1] - 50) / 6
-        val += self.params["weight_3"] *  np.sqrt(np.sqrt(np.abs(self.pastMOYgapder[-1]))) * np.sign(self.pastMOYgapder[-1])
-        val += self.params["weight_4"] *  np.sign(self.pastMOYgap[-1])
-        val += self.params["weight_5"] *  np.sqrt(np.sqrt(np.abs(volume))) * np.sign(volume)
-        val /= self.params["normFactor"]
+        param_pese=["derivé","dérivé2","RSI","derive_diff_close","sign_diff_moy","volume","croisement_moyennes"]
+        
+        poids=[1 for i in range(7)]
+
         self.val.append(val)
-        if val > 1 :
-            self.entryPrice = [len(self.past) - 1, priceRegularized]
+        if val == 1 :
+            self.entryPrice = [self.count-1, priceRegularized]
+            self.weight.append(poids)
             return "Long", self.moneyToBet, self.params["TP"], self.params["SL"]
-        elif val < -1:
-            self.entryPrice = [len(self.past) - 1, priceRegularized]
+        elif val == -1:
+            self.entryPrice = [self.count-1, priceRegularized]
+            self.weight.append(poids)
             return "Short", self.moneyToBet, self.params["TP"], self.params["SL"]
         else :
             return "", None, None, None
@@ -177,15 +121,31 @@ class Policy_01(Policy) :
 
     def addTrade(self, win : bool, val : float) :
         if win == True :
-            self.wins.append([self.entryPrice[0], self.entryPrice[1], len(self.past), val])
+            self.wins.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val])
         else :
-            self.loss.append([self.entryPrice[0], self.entryPrice[1], len(self.past), val])
+            self.loss.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val])
             
-    def plot(self,name:str, ignoreTimer : int = 50):
-        plt.figure(figsize=(16,9))
-        plt.xlabel('Minutes')
-        plt.ylabel('Price')
-        plt.plot(np.array(self.past[ignoreTimer:])*self.ratio, label='Closing Prices')
+    def plot(self, closeSequence,openSequence,highSequence,lowSequence,folder_name,ratio,name:str, ignoreTimer : int = 0):
+        closeSequence = np.array(closeSequence)
+        openSequence = np.array(openSequence)
+        highSequence = np.array(highSequence)
+        lowSequence = np.array(lowSequence)
+        fig, ax1 = plt.subplots(figsize=(20,11))
+        plt.xlabel('TF',fontsize=20)
+        plt.ylabel('Price',fontsize=20)
+        plt.title("Bitcoin Price",fontsize=30, fontweight = 'bold')
+        # print("len : ",len(highSequence))
+        # print("close : ",closeSequence[:30])
+        # print("open : ",openSequence[:30])
+        for j in range(len(highSequence)):
+            if closeSequence[j]>openSequence[j]:
+                c='green'
+            else:
+                c='red'
+            plt.plot([j+0.5,j+0.5],[lowSequence[j],highSequence[j]], c)
+            ax1.add_patch(Rectangle((j, min(closeSequence[j],openSequence[j])), 1, max(closeSequence[j],openSequence[j])-min(closeSequence[j],openSequence[j]),facecolor =c))
+
+        #plt.plot(np.array(closeSequence[ignoreTimer:]), label='Closing Prices')
 # =============================================================================
 #         print("WINS")
 #         print(self.wins)
@@ -198,7 +158,7 @@ class Policy_01(Policy) :
         for a in self.loss:
             plt.scatter(a[0]-ignoreTimer,a[1],s=60,marker='x',c='r')
             plt.arrow(a[0]-ignoreTimer,a[1],a[2]-a[0],a[3]-a[1],color='r')
-        plt.savefig("_temp/Results/"+name)
+        plt.savefig(folder_name+name)
         #plt.close()
 
 
@@ -296,22 +256,7 @@ class Policy_03(Policy) :
 
     def sampleFromTrial(self, trial : Trial) :
             # Sample the policy space and return the associated params
-# =============================================================================
-#         self.params = {
-#             "TP" : 1,#trial.suggest_float('TP',0.2,5),
-#             "SL" : 1,#trial.suggest_float('SL',1,8),
-#             "weight_0" : 1,
-#             "weight_1" : 1,
-#             "weight_2" : 1,
-#             "weight_3" : 1,
-#             "weight_4" : 1,
-#             "weight_5" : 1,
-#             "weight_6" : 1,
-#             "Theta":    7,
-#             "Theta_bis":    3,
-#             "normFactor" : 15,
-#         }
-# =============================================================================
+
         self.params = {
             "TP" : 1.5,#trial.suggest_float('TP',0.2,5),
             "SL" : 0.5,#trial.suggest_float('SL',1,8),

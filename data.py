@@ -10,6 +10,7 @@ import sys
 import pickle # Save and load data to and from storage
 from os.path import exists
 from termcolor import colored
+from indicator import key_hyper_param_influents
 
 from apiKeys import apiSecretKey
 from apiKeys import apiKey
@@ -78,7 +79,9 @@ class Data() :
 
     def getValueStream(self, keyword : str = "close", minIndex : int = 0, maxIndex : int = -1) :
         return [_datum.__dict__[keyword] for _datum in self.data[minIndex:maxIndex]]
-
+    
+    def getValueStream_indic(self,param , keyword : str = "RSI", minIndex : int = 0, maxIndex : int = -1) :
+        return [_datum.indic.param_dict[key_hyper_param_influents(param)][keyword] for _datum in self.data[minIndex:maxIndex]]
 
     def getTrainIndices(self, partitionIndex : int = None) :
             # Retun the train indices of a partition
@@ -144,7 +147,20 @@ class Data() :
         # Retun the test sequences of all partitions
         for partitionIndex in range(self.numPartitions) :
             yield self.testSequence(keyword=keyword, partitionIndex=partitionIndex)
-
+    
+    def plot_indic(self,param,  keyword : str = "RSI", title : str = "", xlabel : str = "", ylabel : str = "") :
+        fig, ax1 = plt.subplots(figsize=(20,11))
+        ax2 = ax1.twinx()
+        ax2.plot(self.getValueStream_indic(param, keyword),color='gray')
+        ax1.plot(self.getValueStream("close"))
+        ax1.plot(self.getValueStream_indic(param, "close_moy_A"),color='y')
+        ax1.plot(self.getValueStream_indic(param, "close_moy_B"),color='r')
+        plt.title(title)
+        ax1.set_xlabel('Unité de temps',fontsize=20)
+        ax1.set_ylabel('Prix ($)',fontsize=20)
+        ax2.set_ylabel(ylabel)
+        ax1.grid(True)
+        fig.tight_layout()
 
     def plot(self, savePath : str = "_temp/data.png", keyword : str = "close", title : str = "", xlabel : str = "", ylabel : str = "") :
         plt.figure(figsize=(17,10))

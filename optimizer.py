@@ -72,18 +72,18 @@ class Optimizer() :
         
     def runExperiment(self, params : dict, dataset : str = "train", sequenceLength : int = 1000, sav : bool = False):
             # Get the proper data
-        if (dataset == "train") : closeSequences, highSequences, lowSequences, volumeSequences, indics= self._data.trainSequences("close"), self._data.trainSequences("high"), self._data.trainSequences("low"),self._data.trainSequences("volume"),self._data.trainSequences("indic")
-        if (dataset == "valid") : closeSequences, highSequences, lowSequences, volumeSequences, indics = self._data.validSequences("close"), self._data.validSequences("high"), self._data.validSequences("low"), self._data.validSequences("volume"),self._data.validSequences("indic")
-        if (dataset == "test") : closeSequences, highSequences, lowSequences, volumeSequences, indics = self._data.testSequences("close"), self._data.testSequences("high"), self._data.testSequences("low"), self._data.testSequences("volume"),self._data.testSequences("indic")
+        if (dataset == "train") : closeSequences, highSequences, lowSequences, openSequences, volumeSequences, indics= self._data.trainSequences("close"), self._data.trainSequences("high"), self._data.trainSequences("low"), self._data.trainSequences("open"),self._data.trainSequences("volume"),self._data.trainSequences("indic")
+        if (dataset == "valid") : closeSequences, highSequences, lowSequences, openSequences, volumeSequences, indics = self._data.validSequences("close"), self._data.validSequences("high"), self._data.validSequences("low"), self._data.validSequences("open"), self._data.validSequences("volume"),self._data.validSequences("indic")
+        if (dataset == "test") : closeSequences, highSequences, lowSequences, openSequences, volumeSequences, indics = self._data.testSequences("close"), self._data.testSequences("high"), self._data.testSequences("low"), self._data.testSequences("open"), self._data.testSequences("volume"),self._data.testSequences("indic")
             # Compute the performance of the policy on all the sequences
         totalPerformance = 0 # Sum of the performances over all the sequences
         tot_array = []
         UnitCount=0
         if sav:
             count,wins,loss=0,0,0
-        for closeSequence, highSequence, lowSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, volumeSequences,indics) :
+        for closeSequence, highSequence, lowSequence, openSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, openSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=0.01)
+            wallet = Wallet(fees=0.04)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
@@ -104,15 +104,17 @@ class Optimizer() :
                 loss += len(policy.loss)
                 count+=1
                 name = "best_test_"+str(count)+".png"
-                closeSeq=[]
                 
-                
-                
-                        
+                closeSeq, highSeq, lowSeq, openSeq=[], [], [], []
                 for elt in closeSequence:
                     closeSeq.append(elt)
-                
-                policy.plot(closeSeq,self.folder_name,self._data.ratio,name=name,ignoreTimer = 0)
+                for elt in highSequence:
+                    highSeq.append(elt)
+                for elt in lowSequence:
+                    lowSeq.append(elt)
+                for elt in openSequence:
+                    openSeq.append(elt)
+                policy.plot(closeSeq,openSeq,highSeq,lowSeq,self.folder_name,self._data.ratio,name=name,ignoreTimer = 0)
                 #print("plot  +  "+ name)
             totalPerformance += agent.wallet.profit(closeValue)
             tot_array.append(agent.wallet.profit(closeValue))
@@ -171,44 +173,49 @@ class Optimizer() :
 #             self.bestTestParams=params
 
             # Return training signal to Optuna
+        #print(trainPerformance, np.std(np.array(train_arr)))
         return trainPerformance-2*np.std(np.array(train_arr))
 
     def fit(self, temps : float) :
         
-        hyperP = {
-            "Theta" : 5,
-            "Theta_bis" : 3,
-            "Theta_der" : 3,
-            "Theta_der2" : 3,
-            "Theta_RSI" : 14}
+        # #création des indicateurs pertinents pour la policy
+        # indices,self._data.ratio=createIndicator_bis(self._data)#self._data
         
-        #création des indicateurs pertinents pour la policy
-        #indices,self._data.ratio=createIndicatorDICO(self._data, hyperP)
+        # # for z in [3,5,7]:
+        # #     for e in [3,5,7]:
+        # #         hyperP = {
+        # #             "Theta" : z,
+        # #             "Theta_bis" : e,
+        # #             "Theta_der" : 3,
+        # #             "Theta_der2" : 3,
+        # #             "Theta_RSI" : 14}
+        # #         indices,self._data.ratio = Init_indicator(indices, data, hyperP)
+        # #         indices=addIndicator(indices,self._data.ratio, hyperP)
+        # # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        # # indices=indices[self.ignoreTimer:]
+        # # self._data.data=self._data.data[self.ignoreTimer:]        
+        
+        # for z in range(1,41,3):
+        #         hyperP = {
+        #             "Theta" : 3,
+        #             "Theta_bis" : 3,
+        #             "Theta_der" : 3,
+        #             "Theta_der2" : 3,
+        #             "Theta_RSI" : 14,
+        #             "Theta_C" : z}
+        #         indices,self._data.ratio = Init_indicator(indices, data, hyperP)
+        #         indices=addIndicator(indices,self._data.ratio, hyperP)
+        # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        # indices=indices[self.ignoreTimer:]
+        # self._data.data=self._data.data[self.ignoreTimer:]
         
         
-        indices,self._data.ratio=createIndicator_bis(self._data)#self._data
         
-        for z in [3,5,7]:
-            for e in [3,5,7]:
-                hyperP = {
-                    "Theta" : z,
-                    "Theta_bis" : e,
-                    "Theta_der" : 3,
-                    "Theta_der2" : 3,
-                    "Theta_RSI" : 14}
-                indices,self._data.ratio = Init_indicator(indices, data, hyperP)
-                indices=addIndicator(indices,self._data.ratio, hyperP)
-        #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
-        indices=indices[self.ignoreTimer:]
-        self._data.data=self._data.data[self.ignoreTimer:]
+        # #print(len(indices))
+        # #print(len(self._data.data))
         
-        
-        
-        #print(len(indices))
-        #print(len(self._data.data))
-        
-        for j in range(len(self._data.data)):
-            self._data.data[j].indic=indices[j]
+        # for j in range(len(self._data.data)):
+        #     self._data.data[j].indic=indices[j]
         
         print(colored("Study launch for {} minutes, with {} partitions ".format(np.round(temps/60,decimals=2),self._data.numPartitions),"green"))
         self.print_save("Study launch for {} minutes, with {} partitions ".format(np.round(temps/60,decimals=2),self._data.numPartitions))
@@ -224,7 +231,7 @@ class Optimizer() :
         # <budget> : Time allocated to the fit of the models in s # TODO : Handle budget
             # Optimize the objective
         optuna.logging.disable_default_handler()
-        self._study.optimize(self.objective, timeout=temps,callbacks=[self.optiPrint])
+        self._study.optimize(self.objective, timeout=temps,callbacks=[self.optiPrint])#temps
             # After fitting, plot the data to visualize the training
         #self.plotPerformances()
         self._results.plotPerformances(self.folder_name)
@@ -264,18 +271,58 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    ignoreTimer=50
-    data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="3m", numPartitions=11, reload=True,ignoreTimer=ignoreTimer)
-    data.plot() # and plot it
-    for j in range(4):
-        plt.close("all")
-        train_number=0
-        opti_name="test_01fees_RR3_stdtest_div_{}".format(j+1)
-        #opti_name="test"
-        optimizer = Optimizer(data, Policy_03, ignoreTimer=ignoreTimer,data_name=opti_name)
-        optimizer.fit(60*24)
-        print("Fin algo : {} executions".format(train_number))
-        optimizer.print_save("Fin algo : {} executions".format(train_number))
+    for t in [1]:#,3,5,15]:
+        ignoreTimer=50
+        data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="{}m".format(t), numPartitions=11, reload=True,ignoreTimer=ignoreTimer)
+        data.plot() # and plot it
+        print("création des indices ....")
+        #création des indicateurs pertinents pour la policy
+        indices,data.ratio=createIndicator_bis(data)#self._data
+        
+        # for z in [3,5,7]:
+        #     for e in [3,5,7]:
+        #         hyperP = {
+        #             "Theta" : z,
+        #             "Theta_bis" : e,
+        #             "Theta_der" : 3,
+        #             "Theta_der2" : 3,
+        #             "Theta_RSI" : 14}
+        #         indices,self._data.ratio = Init_indicator(indices, data, hyperP)
+        #         indices=addIndicator(indices,self._data.ratio, hyperP)
+        # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        # indices=indices[self.ignoreTimer:]
+        # self._data.data=self._data.data[self.ignoreTimer:]        
+        
+        for z in range(1,67,5):
+                hyperP = {
+                    "Theta" : 3,
+                    "Theta_bis" : 3,
+                    "Theta_der" : 3,
+                    "Theta_der2" : 3,
+                    "Theta_RSI" : 14,
+                    "Theta_C" : z}
+                indices,data.ratio = Init_indicator(indices, data, hyperP)
+                indices=addIndicator(indices,data.ratio, hyperP)
+        #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        indices=indices[ignoreTimer:]
+        data.data=data.data[ignoreTimer:]
+            
+    
+        for j in range(len(data.data)):
+            data.data[j].indic=indices[j]
+        print("Indices créés")
+    
+        
+        
+        for j in range(4):
+            plt.close("all")
+            train_number=0
+            opti_name="ZZ_04fees_RRvarSLtoo_boll_revert_{}m_{}".format(t,j+1)
+            #opti_name="test"
+            optimizer = Optimizer(data, Policy_01, ignoreTimer=ignoreTimer,data_name=opti_name)
+            optimizer.fit(60*30)
+            print("Fin algo : {} executions".format(train_number))
+            optimizer.print_save("Fin algo : {} executions".format(train_number))
 
     #optimizer.runExperiment(optimizer.bestTestParams,"test",sav=True)
 

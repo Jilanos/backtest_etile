@@ -17,15 +17,15 @@ import datetime
 import os
 import time
 import sys
-
+from matplotlib.patches import Rectangle
    
 
 
 
 plt.close("all")
 ignoreTimer=50
-data_name="backtest_01fees_RR3_stddiv_test"
-data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="3m", numPartitions=9, reload=True,ignoreTimer=ignoreTimer)
+data_name="backtest_01fees_RR3_stddiv_test" #20*24*30*4
+data = loadData(paire="BTCBUSD", sequenceLength=600, interval_str="3m", numPartitions=9, reload=True,ignoreTimer=ignoreTimer)
 data.plot() # and plot it
 
 
@@ -81,6 +81,45 @@ data.data=data.data[ignoreTimer:]
 
 for j in range(len(data.data)):
     data.data[j].indic=indices[j]
+  
+    
+  
+fig, ax1 = plt.subplots(figsize=(20,11))
+ax2 = ax1.twinx()
+#ax2.plot(np.array(data.getValueStream_indic(hyperP, "std_A"))/np.array(data.getValueStream_indic(hyperP, "std_B")),color='gray')
+#ax1.plot(data.getValueStream("close"))
+close = np.array(data.getValueStream("close"))
+ope = np.array(data.getValueStream("open"))
+high = np.array(data.getValueStream("high"))
+low = np.array(data.getValueStream("low"))
+stdA = np.array(data.getValueStream_indic(hyperP, "bollinger_high"))*ratio
+stdB = np.array(data.getValueStream_indic(hyperP, "bollinger_low"))*ratio
+touch = np.array(data.getValueStream_indic(hyperP, "touch_bollinger"))*ratio
+for j in range(len(high)):
+    if close[j]>ope[j]:
+        c='green'
+    else:
+        c='red'
+    ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
+    ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
+
+ax1.plot(stdA, 'r', ls ='--')
+ax1.plot(stdB, 'r', ls ='--')
+ax2.plot(touch, 'b' )
+# ax1.plot(close + stdB, 'g', ls ='--')
+# ax1.plot(close - stdB, 'g', ls ='--')
+# ax1.plot(np.array(data.getValueStream_indic(hyperP, "close_moy_A"))*ratio,color='y')
+# ax1.plot(np.array(data.getValueStream_indic(hyperP, "close_moy_B"))*ratio,color='r')
+plt.title("Bollinger band and bitcoin Price")
+ax1.set_xlabel('Unité de temps',fontsize=20)
+ax1.set_ylabel('Prix ($)',fontsize=20)
+
+ax1.grid(True)
+fig.tight_layout()
+sys.exit()  
+
+
+
 
 print(colored("Study launch with {} partitions ".format(data.numPartitions),"green"))
 
