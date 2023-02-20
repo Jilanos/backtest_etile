@@ -83,7 +83,7 @@ class Optimizer() :
             count,wins,loss=0,0,0
         for closeSequence, highSequence, lowSequence, openSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, openSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=0.04)
+            wallet = Wallet(fees=0.01)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
@@ -141,8 +141,8 @@ class Optimizer() :
         if not(self._results.PRINTED) :
             self._results.PRINTED=True
             self._results.countSincePrinted=0
-            print(colored("Trial: {} ==>  ".format(train_number),"cyan"),colored("Best Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4)),self._results.PRINTED_Train),colored(" ; Best Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4)),self._results.PRINTED_Valid),colored(" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4)), 'cyan'))
-            txtt="Trial: {} ==>  ".format(train_number)+"Best Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4))+" ; Best Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4))+" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4))
+            print(colored("Trial: {} ==>  ".format(train_number),"cyan"),colored("Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4)),self._results.PRINTED_Train),colored(" ; Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4)),self._results.PRINTED_Valid),colored(" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4)), 'cyan'))
+            txtt="Trial: {} ==>  ".format(train_number)+"Train: {}%, std : {}".format(np.round(self._results.bestTrainedModel, decimals=3),np.round(self._results.bestTrainedStd, decimals=4))+" ; Valid: {}%, std : {}".format(np.round(self._results.bestValidedModel, decimals=4),np.round(self._results.bestValidStd, decimals=4))+" => Test: {}%".format(np.round(self._results.bestTestedModel, decimals=4))
             self.print_save(txtt)
             self.save_param()
         # elif self._results.countSincePrinted>100:
@@ -271,8 +271,8 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    for t in [1]:#,3,5,15]:
-        ignoreTimer=50
+    for t in [1]:#,15]:,3,5
+        ignoreTimer=150
         data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="{}m".format(t), numPartitions=11, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
@@ -292,17 +292,16 @@ if __name__ == "__main__" :
         # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
         # indices=indices[self.ignoreTimer:]
         # self._data.data=self._data.data[self.ignoreTimer:]        
-        
-        for z in range(1,67,5):
-                hyperP = {
-                    "Theta" : 3,
-                    "Theta_bis" : 3,
-                    "Theta_der" : 3,
-                    "Theta_der2" : 3,
-                    "Theta_RSI" : 14,
-                    "Theta_C" : z}
-                indices,data.ratio = Init_indicator(indices, data, hyperP)
-                indices=addIndicator(indices,data.ratio, hyperP)
+
+        hyperP = {
+            "Theta" : 3,
+            "Theta_bis" : 3,
+            "Theta_der" : 3,
+            "Theta_der2" : 3,
+            "Theta_RSI" : 14,
+            "Theta_C" : 50}
+        indices,data.ratio = Init_indicator(indices, data, hyperP)
+        indices=addIndicator(indices,data.ratio, hyperP)
         #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
         indices=indices[ignoreTimer:]
         data.data=data.data[ignoreTimer:]
@@ -314,13 +313,13 @@ if __name__ == "__main__" :
     
         
         
-        for j in range(4):
+        for j in range(1):
             plt.close("all")
             train_number=0
-            opti_name="ZZ_04fees_RRvarSLtoo_boll_revert_{}m_{}".format(t,j+1)
+            opti_name="AAA_04fees_RRvarpolicy2_{}m_{}".format(t,j+1)
             #opti_name="test"
-            optimizer = Optimizer(data, Policy_01, ignoreTimer=ignoreTimer,data_name=opti_name)
-            optimizer.fit(60*30)
+            optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
+            optimizer.fit(60*1)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
 

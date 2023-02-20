@@ -184,7 +184,30 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
     if not(indicateurs[-1].calculated(hyperP,'TPV')):
         for i in range(len(indicateurs)):
             value = (indicateurs[i].get_Indicator(hyperP,"closeV")+indicateurs[i].get_Indicator(hyperP,"highV")+indicateurs[i].get_Indicator(hyperP,"lowV"))/3
-            indicateurs[i].addIndicator(hyperP,value,"TPV")              
+            indicateurs[i].addIndicator(hyperP,value,"TPV")      
+            
+    if not(indicateurs[-1].calculated(hyperP,'TR')):
+        for i in range(len(indicateurs)):
+            if i<=2:
+                value = 0
+            else:
+                v1 = indicateurs[i].get_Indicator(hyperP,"highV")-indicateurs[i].get_Indicator(hyperP,"lowV")
+                v2 = abs(indicateurs[i].get_Indicator(hyperP,"highV")-indicateurs[i-1].get_Indicator(hyperP,"closeV"))
+                v3 = abs(indicateurs[i].get_Indicator(hyperP,"lowV")-indicateurs[i-1].get_Indicator(hyperP,"closeV"))
+                value = max(v1,v2,v3)#*ratio
+            indicateurs[i].addIndicator(hyperP,value,"TR")              
+        
+    if not(indicateurs[-1].calculated(hyperP,'TR_moy_14')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=15:
+                value=indicateurs[i].get_Indicator(hyperP,"TR")
+            elif i==16:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"TR") for j in range(14)]
+                value = np.sum(np.array(array))
+            else:
+                value = indicateurs[i].get_Indicator(hyperP,"TR") + (13./14)*indicateurs[i-1].get_Indicator(hyperP,"TR_moy_14")
+            indicateurs[i].addIndicator(hyperP,value,"TR_moy_14")         
         
     if not(indicateurs[-1].calculated(hyperP,'TP_moy_20')):
         for i in range(len(indicateurs)):
@@ -231,9 +254,107 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
                 else :
                     value = 0
             indicateurs[i].addIndicator(hyperP,value,"touch_bollinger")
+            
+    if not(indicateurs[-1].calculated(hyperP,'MFI')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=14:
+                value = 50
+            else:
+                array_TPV = np.array([indicateurs[i-j].get_Indicator(hyperP,"TPV") for j in range(14)])
+                array_sig_TPV = np.array([np.sign(indicateurs[i-j].get_Indicator(hyperP,"TPV")-indicateurs[i-j-1].get_Indicator(hyperP,"TPV")) for j in range(14)])
+                array_vol = np.array([indicateurs[i-j-1].get_Indicator(hyperP,"volume") for j in range(14)])
+                money_flow = array_TPV*array_sig_TPV*array_vol
+                pos, neg = 0, 0
+                for j in range(14):
+                    if money_flow[j] >0:
+                        pos += money_flow[j]
+                    else:
+                        neg -= money_flow[j]
+                value = 100 - 100/(1+ (pos/neg))
+            indicateurs[i].addIndicator(hyperP,value,"MFI")  
+            
+    if not(indicateurs[-1].calculated(hyperP,'CCI')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=22:
+                value = 0
+            else:
+                array_TPV = np.array([indicateurs[i-j].get_Indicator(hyperP,"TPV") for j in range(20)])
+                moy = indicateurs[i].get_Indicator(hyperP,"TP_moy_20")
+                std = np.std(array_TPV-moy)
+                value = (indicateurs[i].get_Indicator(hyperP,"TPV")-moy)/(0.015*std)
+            indicateurs[i].addIndicator(hyperP,value,"CCI")
+                 
+    if not(indicateurs[-1].calculated(hyperP,'DM+')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=1:
+                DM_p_fin = 0
+                DM_m_fin = 0
+            else:
+                DM_p = indicateurs[i].get_Indicator(hyperP,"highV")-indicateurs[i-1].get_Indicator(hyperP,"highV")
+                DM_m = indicateurs[i-1].get_Indicator(hyperP,"lowV")-indicateurs[i].get_Indicator(hyperP,"lowV")
+                DM_p_fin = 0
+                DM_m_fin = 0
+                for j in range(14):
+                    if DM_p>DM_m and DM_p>0 :
+                        DM_p_fin = DM_p
+                    if DM_p<DM_m and DM_m>0 :
+                        DM_m_fin = DM_m 
+            indicateurs[i].addIndicator(hyperP,DM_p_fin,"DM+")
+            indicateurs[i].addIndicator(hyperP,DM_m_fin,"DM-")
     
+    if not(indicateurs[-1].calculated(hyperP,'DM_moy-_14')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=15:
+                DM_moyM=indicateurs[i].get_Indicator(hyperP,"DM-")
+                DM_moyP=indicateurs[i].get_Indicator(hyperP,"DM+")
+            elif i==16:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"DM-") for j in range(14)]
+                DM_moyM = np.sum(np.array(array))
+                array = [indicateurs[i-j].get_Indicator(hyperP,"DM+") for j in range(14)]
+                DM_moyP = np.sum(np.array(array))
+            else:
+                DM_moyM = indicateurs[i].get_Indicator(hyperP,"DM-") + (13./14)*indicateurs[i-1].get_Indicator(hyperP,"DM_moy-_14")
+                DM_moyP = indicateurs[i].get_Indicator(hyperP,"DM+") + (13./14)*indicateurs[i-1].get_Indicator(hyperP,"DM_moy+_14")
+            indicateurs[i].addIndicator(hyperP,DM_moyP,"DM_moy+_14")       
+            indicateurs[i].addIndicator(hyperP,DM_moyM,"DM_moy-_14")  
+            
+         
+            
+    if not(indicateurs[-1].calculated(hyperP,'DI+')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i <=17 :
+                valueP = 1
+                valueM = 1
+            else:
+                valueP = indicateurs[i].get_Indicator(hyperP,"DM_moy+_14")/indicateurs[i].get_Indicator(hyperP,"TR_moy_14")*100
+                valueM = indicateurs[i].get_Indicator(hyperP,"DM_moy-_14")/indicateurs[i].get_Indicator(hyperP,"TR_moy_14")*100
+            indicateurs[i].addIndicator(hyperP,valueP,"DI+")  
+            indicateurs[i].addIndicator(hyperP,valueM,"DI-")   
+            
+    if not(indicateurs[-1].calculated(hyperP,'DX')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            value = abs(indicateurs[i].get_Indicator(hyperP,"DI+")-indicateurs[i].get_Indicator(hyperP,"DI-"))/abs(indicateurs[i].get_Indicator(hyperP,"DI+")+indicateurs[i].get_Indicator(hyperP,"DI-"))*100
+            indicateurs[i].addIndicator(hyperP,value,"DX")              
     
-
+            
+    if not(indicateurs[-1].calculated(hyperP,'ADX')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=14:
+                value = 0
+            elif i==15:
+                value = np.mean(np.array([indicateurs[i-j].get_Indicator(hyperP,"DX") for j in range(14)]))
+            else:
+                value = (indicateurs[i-1].get_Indicator(hyperP,"ADX")*13+indicateurs[i].get_Indicator(hyperP,"DX"))/14
+            indicateurs[i].addIndicator(hyperP,value,"ADX")
+            
+            
     if not(indicateurs[-1].calculated(hyperP,'sign_diff_moy')):
         for i in range(len(indicateurs)):
             value=(np.sign(indicateurs[i].get_Indicator(hyperP,"close_moy_B")-indicateurs[i].get_Indicator(hyperP,"close_moy_A")))
@@ -301,6 +422,77 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
                 else:
                     value=(value+20)*2
             indicateurs[i].addIndicator(hyperP,value/6,"RSI"),#/6
+
+
+            
+    if not(indicateurs[-1].calculated(hyperP,'average_gain')):
+        for i in range(len(indicateurs)):
+            if i<=14:
+                value_gain=0
+                value_loss=0
+            elif i <=17 :
+                d = [indicateurs[i-j].get_Indicator(hyperP,"derivé") for j in range(14)]
+                value_gain = 0
+                value_loss = 0
+                for elt in d:
+                    if elt>0:
+                        value_gain += elt
+                    else :
+                        value_loss -= elt
+            else:
+                d = indicateurs[i].get_Indicator(hyperP,"derivé")
+                if d > 0:
+                    value_gain = (indicateurs[i-1].get_Indicator(hyperP,"average_gain") *13. +d )/14.
+                    value_loss = indicateurs[i-1].get_Indicator(hyperP,"average_perte")*13./14.
+                else :
+                    value_gain = (indicateurs[i-1].get_Indicator(hyperP,"average_gain") *13.)/14.
+                    value_loss = (indicateurs[i-1].get_Indicator(hyperP,"average_perte")*13. - d)/14.
+            indicateurs[i].addIndicator(hyperP,value_gain,"average_gain")
+            indicateurs[i].addIndicator(hyperP,value_loss,"average_perte")
+    
+    if not(indicateurs[-1].calculated(hyperP,'RSI_true')):
+        for i in range(len(indicateurs)):
+            if i<=18:
+                value=50
+            else:
+                value=100 - 100./(1+indicateurs[i].get_Indicator(hyperP,"average_gain")/indicateurs[i].get_Indicator(hyperP,"average_perte"))
+            indicateurs[i].addIndicator(hyperP,value,"RSI_true"),#/6
+            
+    if not(indicateurs[-1].calculated(hyperP,'RSI_stoch')):
+        for i in range(len(indicateurs)):
+            if i<=30:
+                value = 0
+            else:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"RSI_true") for j in range(14)]
+                mini = min(array)
+                maxi = max(array)
+                RSI = indicateurs[i].get_Indicator(hyperP,"RSI_true")
+                value = (RSI-mini)/(maxi-mini)
+            indicateurs[i].addIndicator(hyperP,value,"RSI_stoch")
+
+
+    if not(indicateurs[-1].calculated(hyperP,'RSI_k')):
+        for i in range(len(indicateurs)):
+            if i<=30:
+                value = 0
+            elif i==31:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"RSI_stoch") for j in range(2)]
+                value = np.mean(np.array(array))
+            else:
+                value = calculate_ema(indicateurs[i].get_Indicator(hyperP,"RSI_stoch"), indicateurs[i-1].get_Indicator(hyperP,"RSI_k"), 1)
+            indicateurs[i].addIndicator(hyperP,value,"RSI_k")
+            
+
+    if not(indicateurs[-1].calculated(hyperP,'RSI_d')):
+        for i in range(len(indicateurs)):
+            if i<=30:
+                value = 0
+            elif i==31:
+                array = [indicateurs[i-j].get_Indicator(hyperP,"RSI_stoch") for j in range(3)]
+                value = np.mean(np.array(array))
+            else:
+                value = calculate_ema(indicateurs[i].get_Indicator(hyperP,"RSI_stoch"), indicateurs[i-1].get_Indicator(hyperP,"RSI_d"), 3)
+            indicateurs[i].addIndicator(hyperP,value,"RSI_d")
             
     if not(indicateurs[-1].calculated(hyperP,'croisement_moyennes')):
         for i in range(len(indicateurs)):

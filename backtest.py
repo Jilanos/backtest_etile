@@ -23,9 +23,9 @@ from matplotlib.patches import Rectangle
 
 
 plt.close("all")
-ignoreTimer=50
+ignoreTimer=200
 data_name="backtest_01fees_RR3_stddiv_test" #20*24*30*4
-data = loadData(paire="BTCBUSD", sequenceLength=600, interval_str="3m", numPartitions=9, reload=True,ignoreTimer=ignoreTimer)
+data = loadData(paire="BTCBUSD", sequenceLength=150, interval_str="3m", numPartitions=9, reload=False,ignoreTimer=ignoreTimer)
 data.plot() # and plot it
 
 
@@ -53,16 +53,18 @@ params = {'TP': 1.5,
  'normFactor': 4.949489013188023}
 
 
+
 params = {"TP": 3, "SL": 0.5, "weight_0": 0.5925377451557796, "weight_1": 0, "weight_2": -0.28148749244735105, "weight_3": 0, "weight_4": -0.7002733979273887, "weight_5": 0, "weight_6": 0.8545965859654405, "Theta": 3, "Theta_bis": 3, "Theta_RSI": 14, "normFactor": 51.8352677444534}
 
 
+params = {"TP": 1.2, "SL": 0.8, "revert": -1, "Theta_C": 45}
 hyperP = {
-    "Theta" : params["Theta"],
-    "Theta_bis" : params["Theta_bis"],
-    "Theta_der" : 3,
-    "Theta_der2" : 3,
-    "Theta_RSI" : params["Theta_RSI"]}
-
+                    "Theta" : 3,
+                    "Theta_bis" : 3,
+                    "Theta_der" : 3,
+                    "Theta_der2" : 3,
+                    "Theta_RSI" : 14,
+                    "Theta_C" : params["Theta_C"]}
 
 #création des indicateurs pertinents pour la policy
 #indices,self._data.ratio=createIndicatorDICO(self._data, hyperP)
@@ -94,7 +96,9 @@ high = np.array(data.getValueStream("high"))
 low = np.array(data.getValueStream("low"))
 stdA = np.array(data.getValueStream_indic(hyperP, "bollinger_high"))*ratio
 stdB = np.array(data.getValueStream_indic(hyperP, "bollinger_low"))*ratio
-touch = np.array(data.getValueStream_indic(hyperP, "touch_bollinger"))*ratio
+rsid = np.array(data.getValueStream_indic(hyperP, "RSI_d"))
+rsik = np.array(data.getValueStream_indic(hyperP, "RSI_k"))
+rsi = np.array(data.getValueStream_indic(hyperP, "RSI_true"))
 for j in range(len(high)):
     if close[j]>ope[j]:
         c='green'
@@ -103,9 +107,11 @@ for j in range(len(high)):
     ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
     ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
 
-ax1.plot(stdA, 'r', ls ='--')
-ax1.plot(stdB, 'r', ls ='--')
-ax2.plot(touch, 'b' )
+# ax1.plot(stdA, 'r', ls ='--')
+# ax1.plot(stdB, 'r', ls ='--')
+ax2.plot(rsik, 'blue' )
+ax2.plot(rsid, 'orange' )
+# ax2.plot(rsi, 'red' )
 # ax1.plot(close + stdB, 'g', ls ='--')
 # ax1.plot(close - stdB, 'g', ls ='--')
 # ax1.plot(np.array(data.getValueStream_indic(hyperP, "close_moy_A"))*ratio,color='y')
