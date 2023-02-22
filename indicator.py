@@ -160,6 +160,61 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
             else:
                 value=calculate_ema(indicateurs[i].get_Indicator(hyperP,"closeV"), indicateurs[i-1].get_Indicator(hyperP,"close_moy_B"), hyperP["Theta"]*hyperP["Theta_bis"])
                 indicateurs[i].addIndicator(hyperP,value,"close_moy_B")
+                                
+    if not(indicateurs[-1].calculated(hyperP,'ema12')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=1:
+                value=indicateurs[i].get_Indicator(hyperP,"closeV")
+                indicateurs[i].addIndicator(hyperP,value,"ema12")
+            else:
+                value=calculate_ema(indicateurs[i].get_Indicator(hyperP,"closeV"), indicateurs[i-1].get_Indicator(hyperP,"ema12"), 12)
+                indicateurs[i].addIndicator(hyperP,value,"ema12")
+
+    if not(indicateurs[-1].calculated(hyperP,'ema26')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=1:
+                value=indicateurs[i].get_Indicator(hyperP,"closeV")
+                indicateurs[i].addIndicator(hyperP,value,"ema26")
+            else:
+                value=calculate_ema(indicateurs[i].get_Indicator(hyperP,"closeV"), indicateurs[i-1].get_Indicator(hyperP,"ema26"), 26)
+                indicateurs[i].addIndicator(hyperP,value,"ema26")
+                
+                
+    if not(indicateurs[-1].calculated(hyperP,'MACD')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            indicateurs[i].addIndicator(hyperP,indicateurs[i].get_Indicator(hyperP,"ema12")-indicateurs[i].get_Indicator(hyperP,"ema26"),"MACD")
+                
+                            
+    if not(indicateurs[-1].calculated(hyperP,'MACD_signal')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=1:
+                value=indicateurs[i].get_Indicator(hyperP,"MACD")
+                indicateurs[i].addIndicator(hyperP,value,"MACD_signal")
+            else:
+                value=calculate_ema(indicateurs[i].get_Indicator(hyperP,"MACD"), indicateurs[i-1].get_Indicator(hyperP,"MACD_signal"), 9)
+                indicateurs[i].addIndicator(hyperP,value,"MACD_signal")
+                 
+                            
+    if not(indicateurs[-1].calculated(hyperP,'MACD_crossing')):
+        for i in range(len(indicateurs)):
+            #definition derivé 1
+            if i<=5:
+                value=0
+            else:
+                dernier_croisement=[indicateurs[i-j].get_Indicator(hyperP,"MACD_crossing") for j in range(1,5)]
+                if ((indicateurs[i].get_Indicator(hyperP,"MACD_signal")-indicateurs[i].get_Indicator(hyperP,"MACD"))<0 and (indicateurs[i-2].get_Indicator(hyperP,"MACD_signal")-indicateurs[i-2].get_Indicator(hyperP,"MACD"))>0):
+                    value=(1)
+                elif ((indicateurs[i].get_Indicator(hyperP,"MACD_signal")-indicateurs[i].get_Indicator(hyperP,"MACD"))>0 and (indicateurs[i-2].get_Indicator(hyperP,"MACD_signal")-indicateurs[i-2].get_Indicator(hyperP,"MACD"))<0):
+                    value=(-1)
+                else:
+                    value=(0)
+            indicateurs[i].addIndicator(hyperP,value,"MACD_crossing")
+                
+            
                 
     if not(indicateurs[-1].calculated(hyperP,'close_moy_C')):
         for i in range(len(indicateurs)):
@@ -180,6 +235,26 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
                 value=indicateurs[i].get_Indicator(hyperP,"close_moy_C")-indicateurs[i-1].get_Indicator(hyperP,"close_moy_C")
                 indicateurs[i].addIndicator(hyperP,value,"der_moy_C")   
 
+        
+    if not(indicateurs[-1].calculated(hyperP,'maxi_proche')):
+        for i in range(len(indicateurs)):
+            close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
+            value_int = np.max([indicateurs[i-j].get_Indicator(hyperP,"highV") for j in range(24)])
+            value = abs(value_int-close_act)/close_act*100
+            if value > hyperP["SL_max"]:
+                value = hyperP["SL_max"]
+            indicateurs[i].addIndicator(hyperP,value,"maxi_proche")   
+     
+        
+    if not(indicateurs[-1].calculated(hyperP,'mini_proche')):
+        for i in range(len(indicateurs)):
+            close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
+            value_int = np.min([indicateurs[i-j].get_Indicator(hyperP,"lowV") for j in range(24)])
+            value = abs(value_int-close_act)/close_act*100
+            if value > hyperP["SL_max"]:
+                value = hyperP["SL_max"]
+            indicateurs[i].addIndicator(hyperP,value,"mini_proche")     
+            
         
     if not(indicateurs[-1].calculated(hyperP,'TPV')):
         for i in range(len(indicateurs)):

@@ -41,13 +41,14 @@ class Agent() :
                     # End Long bet
                 if isinstance(self.bet, Long) :
                     self.wallet.sell(self.wallet.bitcoins, self.bet.sellPrice,"long")
-                    self.policy.addTrade(win, self.bet.sellPrice)
+                    self.policy.addTrade(win, self.bet.sellPrice, self.bet.otherPrice)
                     self.bet = None
                     # End Short bet
                 if isinstance(self.bet, Short) :
                     #self.wallet.buy(self.wallet.getMoneyAmountShort(self.bet.moneyAmount, self.bet.buyPrice) self.bet.moneyAmount, self.bet.buyPrice)
+                    #print("wallet bitcoin {} / buyprice {}".format(self.wallet.bitcoins,self.bet.buyPrice))
                     self.wallet.buy(-self.wallet.bitcoins*self.bet.buyPrice,self.bet.buyPrice,"short")
-                    self.policy.addTrade(win, self.bet.buyPrice)
+                    self.policy.addTrade(win, self.bet.buyPrice, self.bet.otherPrice)
                     self.bet = None
 
 

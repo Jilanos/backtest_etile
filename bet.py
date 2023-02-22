@@ -17,6 +17,7 @@ class Bet() :
         self.moneyAmount = moneyAmount
         self.stopLossPrice = stopLossPrice
         self.takeProfitPrice = takeProfitPrice
+        self.otherPrice = None
 
         # All bet must have a terminaison criterion to know when to end the bet
     @abc.abstractmethod
@@ -49,10 +50,12 @@ class Long(Bet) :
             # Bet is lost
         if lowest < self.stopLossPrice :
             self.sellPrice = self.stopLossPrice
+            self.otherPrice = self.takeProfitPrice
             return True,False
             # Bet is won
         if highest > self.takeProfitPrice :
             self.sellPrice = self.takeProfitPrice
+            self.otherPrice = self.stopLossPrice
             return True,True
         # Bet neither won nor lost do not terminate
         return False,False
@@ -83,10 +86,12 @@ class Short(Bet) :
             # Bet is lost
         if highest > self.stopLossPrice :
             self.buyPrice = self.stopLossPrice
+            self.otherPrice = self.takeProfitPrice
             return True,False
             # Bet is won
         if lowest < self.takeProfitPrice :
             self.buyPrice = self.takeProfitPrice
+            self.otherPrice = self.stopLossPrice
             return True,True
 
         # Bet neither won nor lost do not terminate

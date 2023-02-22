@@ -184,17 +184,19 @@ class Policy_02(Policy) :
             # Sample the policy space and return the associated params
 
         self.params = {
-            "TP" : trial.suggest_int("TP", 5, 25)/10,#trial.suggest_float('TP',0.2,5),
-            "SL" : trial.suggest_int("SL", 2, 8)/10,#trial.suggest_float('SL',1,8),
-            "buy_adx" : trial.suggest_int("buy_adx", 20, 50),#IntParameter(20, 50, default=32, space='buy')
-            "buy_fastd" : trial.suggest_int("buy_fastd", 15, 45),#buy_fastd = IntParameter(15, 45, default=30, space='buy')
-            "buy_fastk" : trial.suggest_int("buy_fastk", 15, 45),#buy_fastk = IntParameter(15, 45, default=26, space='buy')
-            "buy_mfi" :    trial.suggest_int("buy_mfi", 10, 25),
-            "sell_adx" :    trial.suggest_int("sell_adx", 50, 100),#sell_adx = IntParameter(50, 100, default=53, space='sell')
+            "TP" : trial.suggest_int("TP", 8, 35)/10,#trial.suggest_float('TP',0.2,5),
+            #"SL" : trial.suggest_int("SL", 2, 8)/10,#trial.suggest_float('SL',1,8),
+            #"buy_adx" : trial.suggest_int("buy_adx", 20, 50),#IntParameter(20, 50, default=32, space='buy')
+            #"buy_fastd" : trial.suggest_int("buy_fastd", 15, 45),#buy_fastd = IntParameter(15, 45, default=30, space='buy')
+            #"buy_fastk" : trial.suggest_int("buy_fastk", 15, 45),#buy_fastk = IntParameter(15, 45, default=26, space='buy')
+            #"buy_mfi" :    trial.suggest_int("buy_mfi", 10, 25),
+            #"sell_adx" :    trial.suggest_int("sell_adx", 50, 100),#sell_adx = IntParameter(50, 100, default=53, space='sell')
             #"sell_cci" :    trial.suggest_int("sell_cci", 100, 200),#    sell_cci = IntParameter(100, 200, default=183, space='sell')
-            "sell_fastd" :    trial.suggest_int("sell_fastd", 50, 100),#    sell_fastd = IntParameter(50, 100, default=79, space='sell')
-            "sell_fastk" :    trial.suggest_int("sell_fastk", 50, 100),#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
-            "sell_mfi" :    trial.suggest_int("sell_mfi", 75, 100)#    sell_mfi = IntParameter(75, 100, default=92, space='sell')
+            #"sell_fastd" :    trial.suggest_int("sell_fastd", 50, 100),#    sell_fastd = IntParameter(50, 100, default=79, space='sell')
+            #"sell_fastk" :    trial.suggest_int("sell_fastk", 50, 100),#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
+            "buy_RSI" :    trial.suggest_int("buy_RSI", 0, 100),#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
+            "sell_RSI" :    trial.suggest_int("sell_RSI", 0, 100)#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
+            #"sell_mfi" :    trial.suggest_int("sell_mfi", 75, 100)#    sell_mfi = IntParameter(75, 100, default=92, space='sell')
         }
 
 
@@ -214,13 +216,14 @@ class Policy_02(Policy) :
             "Theta_der" : 3,
             "Theta_der2" : 3,
             "Theta_RSI" : 14,
-            "Theta_C" : 50}
+            "Theta_C" : 50,
+            "SL_max" : 1}
         val = 0
-        if indic.get_Indicator(param, "ADX")> self.params["buy_adx"] and indic.get_Indicator(param, "RSI_k")< self.params["buy_fastk"] and indic.get_Indicator(param, "RSI_d")< self.params["buy_fastd"] and indic.get_Indicator(param, "MFI")< self.params["buy_mfi"]:
+        if indic.get_Indicator(param, "MACD_crossing")==1 and indic.get_Indicator(param, "RSI_stoch")< self.params["buy_RSI"]:
             if indic.get_Indicator(param, "closeV")> indic.get_Indicator(param, "close_moy_C"):
                 val = 1
                 #print("Sucess Long")
-        elif indic.get_Indicator(param, "ADX")< self.params["sell_adx"] and indic.get_Indicator(param, "RSI_k")> self.params["sell_fastk"] and indic.get_Indicator(param, "RSI_d")> self.params["sell_fastd"] and indic.get_Indicator(param, "MFI")> self.params["sell_mfi"] :
+        elif indic.get_Indicator(param, "MACD_crossing")==-1 and indic.get_Indicator(param, "RSI_stoch")> self.params["sell_RSI"]:
             if indic.get_Indicator(param, "closeV")< indic.get_Indicator(param, "close_moy_C"):
                 val= -1
                 #print("Sucess Short")
@@ -233,21 +236,23 @@ class Policy_02(Policy) :
         if val == 1 :
             self.entryPrice = [self.count-1, priceRegularized]
             self.weight.append(poids)
-            return "Long", self.moneyToBet, self.params["TP"], self.params["SL"]
+            return "Long", self.moneyToBet, self.params["TP"], indic.get_Indicator(param, "mini_proche")
+            #return "Long", self.moneyToBet, self.params["TP"], self.params["SL"]
         elif val == -1:
             self.entryPrice = [self.count-1, priceRegularized]
             self.weight.append(poids)
-            return "Short", self.moneyToBet, self.params["TP"], self.params["SL"]
+            return "Short", self.moneyToBet, self.params["TP"], indic.get_Indicator(param, "maxi_proche")
+            #return "Short", self.moneyToBet, self.params["TP"], self.params["SL"]
         else :
             return "", None, None, None
         print("priceRegularized, highestRegularized, lowestRegularized : ", priceRegularized, highestRegularized, lowestRegularized)
 
 
-    def addTrade(self, win : bool, val : float) :
+    def addTrade(self, win : bool, val : float, val_other : float) :
         if win == True :
-            self.wins.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val])
+            self.wins.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val, val_other])
         else :
-            self.loss.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val])
+            self.loss.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val, val_other])
             
     def plot(self, closeSequence,openSequence,highSequence,lowSequence,folder_name,ratio,name:str, ignoreTimer : int = 0):
         closeSequence = np.array(closeSequence)
@@ -279,11 +284,14 @@ class Policy_02(Policy) :
         for a in self.wins:
             plt.scatter(a[0]-ignoreTimer,a[1],s=60,marker='x',c='g')#length_includes_head=True,head_width=5,head_length=30
             plt.arrow(a[0]-ignoreTimer,a[1],a[2]-a[0],a[3]-a[1],color='g')
-
+            ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[3]-a[1], facecolor = 'green', alpha = 0.4))
+            ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[4]-a[1], facecolor = 'red', alpha = 0.4))
                 
         for a in self.loss:
             plt.scatter(a[0]-ignoreTimer,a[1],s=60,marker='x',c='r')
             plt.arrow(a[0]-ignoreTimer,a[1],a[2]-a[0],a[3]-a[1],color='r')
+            ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[4]-a[1], facecolor = 'green', alpha = 0.4))
+            ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[3]-a[1], facecolor = 'red', alpha = 0.4))
         plt.savefig(folder_name+name)
         #plt.close()
 

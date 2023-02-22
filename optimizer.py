@@ -18,6 +18,7 @@ import os
 import time
 import sys
 import json
+from scipy.signal import argrelextrema
 
 
 class Optimizer() :
@@ -83,7 +84,7 @@ class Optimizer() :
             count,wins,loss=0,0,0
         for closeSequence, highSequence, lowSequence, openSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, openSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=0.01)
+            wallet = Wallet(fees=-0.01)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
@@ -271,9 +272,10 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    for t in [1]:#,15]:,3,5
+    for t in [5]:#,15]:,3,5
         ignoreTimer=150
-        data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="{}m".format(t), numPartitions=11, reload=True,ignoreTimer=ignoreTimer)
+        #data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
+        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*3, interval_str="{}m".format(t), numPartitions=4,trainProp = 0.5, validProp = 0.25, testProp  = 0.25, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
         #création des indicateurs pertinents pour la policy
@@ -299,7 +301,8 @@ if __name__ == "__main__" :
             "Theta_der" : 3,
             "Theta_der2" : 3,
             "Theta_RSI" : 14,
-            "Theta_C" : 50}
+            "Theta_C" : 50,
+            "SL_max" : 1}
         indices,data.ratio = Init_indicator(indices, data, hyperP)
         indices=addIndicator(indices,data.ratio, hyperP)
         #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
@@ -316,12 +319,24 @@ if __name__ == "__main__" :
         for j in range(1):
             plt.close("all")
             train_number=0
-            opti_name="AAA_04fees_RRvarpolicy2_{}m_{}".format(t,j+1)
+            opti_name="00_Test{}m_{}".format(t,j+1)
             #opti_name="test"
             optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
-            optimizer.fit(60*1)
+            optimizer.fit(60*2)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
 
     #optimizer.runExperiment(optimizer.bestTestParams,"test",sav=True)
+sys.exit()
+
+#%%
+seq = np.array(data.testSequence("open")[:60])
+maxi = argrelextrema(seq,np.greater)
+maxi_val = seq[maxi[0]]
+mini = argrelextrema(seq,np.less)
+mini_val = seq[mini[0]]
+plt.plot(seq)
+plt.scatter(maxi,maxi_val, c = 'green')
+plt.scatter(mini,mini_val, c = 'red')
+
 
