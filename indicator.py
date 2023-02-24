@@ -106,6 +106,7 @@ def Init_indicator(indicateur,data,params):
         indicateur[i].addIndicator(params,closeData[i] ,"closeV")
         indicateur[i].addIndicator(params,highData[i] ,"highV")
         indicateur[i].addIndicator(params,lowData[i] ,"lowV")
+        indicateur[i].addIndicator(params,openData[i] ,"openV")
         indicateur[i].addIndicator(params,np.sqrt(np.sqrt(np.abs(volumeV))) * np.sign(volumeV) ,"volume")    
     return indicateur,ratio 
 

@@ -216,7 +216,7 @@ class Policy_02(Policy) :
             "Theta_der" : 3,
             "Theta_der2" : 3,
             "Theta_RSI" : 14,
-            "Theta_C" : 50,
+            "Theta_C" : 200,
             "SL_max" : 1}
         val = 0
         if indic.get_Indicator(param, "MACD_crossing")==1 and indic.get_Indicator(param, "RSI_stoch")< self.params["buy_RSI"]:
@@ -250,9 +250,9 @@ class Policy_02(Policy) :
 
     def addTrade(self, win : bool, val : float, val_other : float) :
         if win == True :
-            self.wins.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val, val_other])
+            self.wins.append([self.entryPrice[0]+0.5, self.entryPrice[1], self.count+0.5, val, val_other])
         else :
-            self.loss.append([self.entryPrice[0], self.entryPrice[1], self.count-1, val, val_other])
+            self.loss.append([self.entryPrice[0]+0.5, self.entryPrice[1], self.count+0.5, val, val_other])
             
     def plot(self, closeSequence,openSequence,highSequence,lowSequence,folder_name,ratio,name:str, ignoreTimer : int = 0):
         closeSequence = np.array(closeSequence)

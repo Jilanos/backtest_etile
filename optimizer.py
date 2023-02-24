@@ -20,6 +20,18 @@ import sys
 import json
 from scipy.signal import argrelextrema
 
+def findLastId():
+    current_directory = os.getcwd()
+    result_dir = os.path.join(current_directory, 'Results')
+    #print(result_dir)
+    subdirs = [int(d.split('__')[0]) for d in os.listdir(result_dir) if os.path.isdir(os.path.join(result_dir, d))]
+    # Trouver le dernier identifiant en incrémentant de 1
+    if subdirs:
+        last_id = max(subdirs) + 1
+    else:
+        last_id = 1
+    print(last_id)
+    return last_id
 
 class Optimizer() :
 
@@ -84,7 +96,7 @@ class Optimizer() :
             count,wins,loss=0,0,0
         for closeSequence, highSequence, lowSequence, openSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, openSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=-0.01)
+            wallet = Wallet(fees=0.01)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
@@ -274,8 +286,8 @@ if __name__ == "__main__" :
         # Get data to feed to optimizer
     for t in [5]:#,15]:,3,5
         ignoreTimer=150
-        #data = loadData(paire="BTCBUSD", sequenceLength=20*24*30*4, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
-        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*3, interval_str="{}m".format(t), numPartitions=4,trainProp = 0.5, validProp = 0.25, testProp  = 0.25, reload=True,ignoreTimer=ignoreTimer)
+        #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
+        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=5,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
         #création des indicateurs pertinents pour la policy
@@ -301,7 +313,7 @@ if __name__ == "__main__" :
             "Theta_der" : 3,
             "Theta_der2" : 3,
             "Theta_RSI" : 14,
-            "Theta_C" : 50,
+            "Theta_C" : 200,
             "SL_max" : 1}
         indices,data.ratio = Init_indicator(indices, data, hyperP)
         indices=addIndicator(indices,data.ratio, hyperP)
@@ -315,14 +327,14 @@ if __name__ == "__main__" :
         print("Indices créés")
     
         
-        
-        for j in range(1):
+        for j in range(5):
             plt.close("all")
             train_number=0
-            opti_name="00_Test{}m_{}".format(t,j+1)
+            new_id = findLastId()
+            opti_name="{}__TEST_timeplot_{}m_{}".format(new_id,t,j+1)
             #opti_name="test"
             optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
-            optimizer.fit(60*2)
+            optimizer.fit(60*110)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
 
@@ -338,5 +350,72 @@ mini_val = seq[mini[0]]
 plt.plot(seq)
 plt.scatter(maxi,maxi_val, c = 'green')
 plt.scatter(mini,mini_val, c = 'red')
+
+#%%
+plt.close("all")
+from matplotlib.patches import Rectangle
+
+
+fig, ax1 = plt.subplots(figsize=(20,11))
+ax2 = ax1.twinx()
+#ax2.plot(np.array(data.getValueStream_indic(hyperP, "std_A"))/np.array(data.getValueStream_indic(hyperP, "std_B")),color='gray')
+#ax1.plot(data.getValueStream("close"))
+close = np.array(data.getValueStream("close"))
+ope = np.array(data.getValueStream("open"))
+high = np.array(data.getValueStream("high"))
+low = np.array(data.getValueStream("low"))
+
+close = np.array(data.getValueStream_indic(hyperP, "closeV"))
+ope = np.array(data.getValueStream_indic(hyperP, "openV"))
+high = np.array(data.getValueStream_indic(hyperP, "highV"))
+low = np.array(data.getValueStream_indic(hyperP, "lowV"))
+
+
+RSI = np.array(data.getValueStream_indic(hyperP, "RSI_stoch"))
+MACD_cross = np.array(data.getValueStream_indic(hyperP, "MACD_crossing"))
+MACD = np.array(data.getValueStream_indic(hyperP, "MACD"))
+MACD_s = np.array(data.getValueStream_indic(hyperP, "MACD_signal"))
+trend = np.array(data.getValueStream_indic(hyperP, "close_moy_C"))
+for j in range(len(high)):
+    if close[j]>ope[j]:
+        c='green'
+    else:
+        c='red'
+    ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
+    ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
+ax1.plot(trend, 'r', ls ='--')
+# ax1.plot(stdB, 'r', ls ='--')
+# ax2.plot(MACD, 'blue' )
+# ax2.plot(MACD_s, 'orange' )
+#ax2.plot(MACD_cross, 'orange' )
+# ax2.plot(rsi, 'red' )
+# ax1.plot(close + stdB, 'g', ls ='--')
+# ax1.plot(close - stdB, 'g', ls ='--')
+# ax1.plot(np.array(data.getValueStream_indic(hyperP, "close_moy_A"))*ratio,color='y')
+# ax1.plot(np.array(data.getValueStream_indic(hyperP, "close_moy_B"))*ratio,color='r')
+plt.title("comparaison indicatieur")
+ax1.set_xlabel('Unité de temps',fontsize=20)
+ax1.set_ylabel('Prix ($)',fontsize=20)
+plt.grid()
+
+#%%
+
+# Spécifier le chemin où les dossiers seront enregistrés
+# current_directory = os.getcwd()
+# os.chdir('Results')
+directory_path = os.getcwd()
+
+# Obtenir une liste de tous les sous-dossiers
+subdirs = [int(d.split('__')[0]) for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
+
+# Trouver le dernier identifiant en incrémentant de 1
+if subdirs:
+    last_id = max(subdirs) + 1
+else:
+    last_id = 1
+
+
+# Concaténer l'identifiant, deux tirets, et le texte de votre choix pour former le nom de dossier final
+folder_name = f"{last_id}__anythingoverhere_m5"
 
 
