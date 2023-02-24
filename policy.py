@@ -184,7 +184,7 @@ class Policy_02(Policy) :
             # Sample the policy space and return the associated params
 
         self.params = {
-            "TP" : trial.suggest_int("TP", 8, 35)/10,#trial.suggest_float('TP',0.2,5),
+            "TP" : trial.suggest_int("TP", 8, 35)/10.,#trial.suggest_float('TP',0.2,5),
             #"SL" : trial.suggest_int("SL", 2, 8)/10,#trial.suggest_float('SL',1,8),
             #"buy_adx" : trial.suggest_int("buy_adx", 20, 50),#IntParameter(20, 50, default=32, space='buy')
             #"buy_fastd" : trial.suggest_int("buy_fastd", 15, 45),#buy_fastd = IntParameter(15, 45, default=30, space='buy')
@@ -193,6 +193,8 @@ class Policy_02(Policy) :
             #"sell_adx" :    trial.suggest_int("sell_adx", 50, 100),#sell_adx = IntParameter(50, 100, default=53, space='sell')
             #"sell_cci" :    trial.suggest_int("sell_cci", 100, 200),#    sell_cci = IntParameter(100, 200, default=183, space='sell')
             #"sell_fastd" :    trial.suggest_int("sell_fastd", 50, 100),#    sell_fastd = IntParameter(50, 100, default=79, space='sell')
+            "SL_min" :    trial.suggest_int("SL_min", 3,6)/10.,#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
+            "SL_max" :    trial.suggest_int("SL_max", 7, 10)/10.,#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
             #"sell_fastk" :    trial.suggest_int("sell_fastk", 50, 100),#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
             "buy_RSI" :    trial.suggest_int("buy_RSI", 0, 100),#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
             "sell_RSI" :    trial.suggest_int("sell_RSI", 0, 100)#   sell_fastk = IntParameter(50, 100, default=70, space='sell')
@@ -217,7 +219,8 @@ class Policy_02(Policy) :
             "Theta_der2" : 3,
             "Theta_RSI" : 14,
             "Theta_C" : 200,
-            "SL_max" : 1}
+            "SL_max" : self.params["SL_max"],
+            "SL_min" : self.params["SL_min"]}
         val = 0
         if indic.get_Indicator(param, "MACD_crossing")==1 and indic.get_Indicator(param, "RSI_stoch")< self.params["buy_RSI"]:
             if indic.get_Indicator(param, "closeV")> indic.get_Indicator(param, "close_moy_C"):

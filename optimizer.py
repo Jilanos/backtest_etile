@@ -293,33 +293,37 @@ if __name__ == "__main__" :
         #création des indicateurs pertinents pour la policy
         indices,data.ratio=createIndicator_bis(data)#self._data
         
-        # for z in [3,5,7]:
-        #     for e in [3,5,7]:
-        #         hyperP = {
-        #             "Theta" : z,
-        #             "Theta_bis" : e,
-        #             "Theta_der" : 3,
-        #             "Theta_der2" : 3,
-        #             "Theta_RSI" : 14}
-        #         indices,self._data.ratio = Init_indicator(indices, data, hyperP)
-        #         indices=addIndicator(indices,self._data.ratio, hyperP)
-        # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
-        # indices=indices[self.ignoreTimer:]
-        # self._data.data=self._data.data[self.ignoreTimer:]        
-
-        hyperP = {
-            "Theta" : 3,
-            "Theta_bis" : 3,
-            "Theta_der" : 3,
-            "Theta_der2" : 3,
-            "Theta_RSI" : 14,
-            "Theta_C" : 200,
-            "SL_max" : 1}
-        indices,data.ratio = Init_indicator(indices, data, hyperP)
-        indices=addIndicator(indices,data.ratio, hyperP)
+        for z in [3,4,5,6]:
+            for e in [7,8,9,10]:
+                hyperP = {
+                    "Theta" : 3,
+                    "Theta_bis" : 3,
+                    "Theta_der" : 3,
+                    "Theta_der2" : 3,
+                    "Theta_RSI" : 14,
+                    "Theta_C" : 200,
+                    "SL_max" : e/10.,
+                    "SL_min" : z/10}
+                indices,data.ratio = Init_indicator(indices, data, hyperP)
+                indices=addIndicator(indices,data.ratio, hyperP)
         #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
         indices=indices[ignoreTimer:]
-        data.data=data.data[ignoreTimer:]
+        data.data=data.data[ignoreTimer:]  
+
+        # hyperP = {
+        #     "Theta" : 3,
+        #     "Theta_bis" : 3,
+        #     "Theta_der" : 3,
+        #     "Theta_der2" : 3,
+        #     "Theta_RSI" : 14,
+        #     "Theta_C" : 200,
+        #     "SL_max" : 1,
+        #     "SL_min" : 0.4}
+        # indices,data.ratio = Init_indicator(indices, data, hyperP)
+        # indices=addIndicator(indices,data.ratio, hyperP)
+        # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        # indices=indices[ignoreTimer:]
+        # data.data=data.data[ignoreTimer:]
             
     
         for j in range(len(data.data)):
@@ -334,7 +338,7 @@ if __name__ == "__main__" :
             opti_name="{}__TEST_timeplot_{}m_{}".format(new_id,t,j+1)
             #opti_name="test"
             optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
-            optimizer.fit(60*110)
+            optimizer.fit(60*15)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
 

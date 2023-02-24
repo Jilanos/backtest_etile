@@ -242,8 +242,8 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
             close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
             value_int = np.max([indicateurs[i-j].get_Indicator(hyperP,"highV") for j in range(24)])
             value = abs(value_int-close_act)/close_act*100
-            if value > hyperP["SL_max"]:
-                value = hyperP["SL_max"]
+            if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
+                value = (hyperP["SL_max"] + hyperP["SL_min"])/2
             indicateurs[i].addIndicator(hyperP,value,"maxi_proche")   
      
         
@@ -252,8 +252,8 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
             close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
             value_int = np.min([indicateurs[i-j].get_Indicator(hyperP,"lowV") for j in range(24)])
             value = abs(value_int-close_act)/close_act*100
-            if value > hyperP["SL_max"]:
-                value = hyperP["SL_max"]
+            if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
+                value = (hyperP["SL_max"] + hyperP["SL_min"])/2
             indicateurs[i].addIndicator(hyperP,value,"mini_proche")     
             
         
