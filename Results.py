@@ -56,11 +56,15 @@ class Results():
         self.text_file = open(self.folder_name+"result_best_valid.txt",'a')
         self.text_file.close()
         
+        self.folder_name = folder_name
+        self.transac_file = open(self.folder_name+"transactions_best_valid.txt",'a')
+        self.transac_file.close()
+        
         
 
         
         
-    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array, valid_array, test_arr) :
+    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array, valid_array, test_arr, train_transac, valid_transac, test_transac) :
         self.params.append(params)
         self.lastTrainPerf = trainPerformance
         self.lastTrainStd = np.std(np.array(train_array))
@@ -94,6 +98,7 @@ class Results():
             self.bestTestedModel=testPerformance
             self.bestTestParams=params
             self.saveLastValidRes(train_array, valid_array, test_arr)
+            self.saveTransactions(train_transac, valid_transac, test_transac)
             
         
         train_array = np.array(train_array)
@@ -181,5 +186,27 @@ class Results():
         self.text_file.write(text)
         self.text_file.close()
         
+                 
+                
+    def saveTransactions(self, train_transac, valid_transac, test_transac):
+        text = ""
+        text += "Train Results\n\n"
+        for i,elt in enumerate(train_transac) :
+            text += "Train {}\n".format(i)
+            text += elt
         
+        text += "\n\n\nValid Results\n"
+        for i,elt in enumerate(valid_transac) :
+            text += "Valid {}\n".format(i)
+            text += elt
+                
+        text += "\n\nTest Results\n"
+        for i,elt in enumerate(test_transac) :
+            text += "Test {}\n".format(i)
+            text += elt
+        
+        self.transac_file = open(self.folder_name+"transactions_best_valid.txt",'w')
+        self.transac_file.write(text)
+        self.transac_file.close()
+               
         

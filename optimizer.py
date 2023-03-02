@@ -99,6 +99,7 @@ class Optimizer() :
             # Compute the performance of the policy on all the sequences
         totalPerformance = 0 # Sum of the performances over all the sequences
         tot_array = []
+        transac_array = []
         UnitCount=0
         if sav:
             count,wins,loss=0,0,0
@@ -139,6 +140,7 @@ class Optimizer() :
                 #print("plot  +  "+ name)
             totalPerformance += agent.wallet.profit(closeValue)
             tot_array.append(agent.wallet.profit(closeValue))
+            transac_array.append(agent.wallet.allTransactions())
         for i in range(len(tot_array)):
             tot_array[i] = tot_array[i]/UnitCount*self._data.perday
         if sav:
@@ -153,7 +155,7 @@ class Optimizer() :
             tradeRate=np.round((wins+loss)/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday,decimals=2)
             print(colored("Résultat dans le test final : WR : {}%, gain quotidien {}%, nbr de trades quotidiens : {}".format(wr,gain, tradeRate),"green"))
         #print("totalunit : {}, total value : {}, resultat {}, perday {}".format(UnitCount,totalPerformance,totalPerformance/UnitCount*self._data.perday,self._data.perday))
-        return totalPerformance/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday, tot_array
+        return totalPerformance/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday, tot_array, transac_array
 
     def optiPrint(self,study, trial):
         global train_number
@@ -182,14 +184,14 @@ class Optimizer() :
             # Compute performances
         self.paramTemp=[[] for i in range(7)] 
         
-        trainPerformance,train_arr = self.runExperiment(params, "train",False)
-        validPerformance,valid_arr = self.runExperiment(params, "valid",False)
-        testPerformance, test_arr = self.runExperiment(params, "test",False)
+        trainPerformance,train_arr, train_transac = self.runExperiment(params, "train",False)
+        validPerformance,valid_arr, valid_transac = self.runExperiment(params, "valid",False)
+        testPerformance, test_arr, test_transac = self.runExperiment(params, "test",False)
         if(len(self.paramTemp[0])>0):
             for ind in range(7):
                 self.paramImpact[ind].append(np.mean(self.paramTemp[ind]))
         
-        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr,valid_arr, test_arr)
+        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr,valid_arr, test_arr, train_transac, valid_transac, test_transac)
 
 #             self.bestTestParams=params
 
@@ -339,7 +341,7 @@ if __name__ == "__main__" :
         print("Indices créés")
     
         for j in range(1):
-            duree_min = 2
+            duree_min = 4
             plt.close("all")
             train_number=0
             new_id = findLastId()

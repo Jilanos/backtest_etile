@@ -18,6 +18,8 @@ class Wallet() :
         self.fees = fees # In percentage
         self.enter = 0
         self.gain =0
+        self.text = ""
+        
 
 
     def getBtcAmount(self, moneyAmount : float, price : float) -> float :
@@ -34,7 +36,11 @@ class Wallet() :
         # Compute how many BTC can be bought from <money>, considering <price> and <self.fees>
         return moneyAmount * (1 - self.fees / 100) / price
     
-
+    def addTransaction(self,value):
+        if value>0:
+            self.text += "+{}\n".format(value)
+        else :    
+            self.text += "{}\n".format(value)
 
     def buy(self, moneyAmount : float, price : float, applyfees : str) :
             # Check types and values
@@ -47,6 +53,8 @@ class Wallet() :
             feesBTC=1
             feesEUR=1+self.fees / 100
             self.gain+=(self.money - moneyAmount*feesEUR)-self.enter
+            self.addTransaction((self.money - moneyAmount*feesEUR)-self.enter)
+            
         elif applyfees=="long":#DEBUT
             feesBTC=1-self.fees / 100
             feesEUR=1
@@ -70,6 +78,7 @@ class Wallet() :
             feesBTC=1
             feesEUR=1-self.fees / 100
             self.gain+=(self.money + btcAmount*price*feesEUR)-self.enter
+            self.addTransaction((self.money + btcAmount*price*feesEUR)-self.enter)
         elif applyfees=="short":#DEBUT
             feesBTC=1
             feesEUR=1-self.fees / 100
@@ -90,6 +99,9 @@ class Wallet() :
     def profit(self, price : float) :
         #return self.totalValue(price) - self.initialMoney
         return self.gain
+    
+    def allTransactions(self):
+        return self.text
 
 
     def __str__(self) :
