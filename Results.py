@@ -15,7 +15,7 @@ import json
 
 class Results():
     
-    def __init__(self) :
+    def __init__(self, folder_name : str) :
         # Todo : Ensure variable types and values
         
         #sauvegardes de l'ensembles des jeux de paramètres des meilleurs réusltats et les performances associées
@@ -52,11 +52,15 @@ class Results():
         self.lastValidStd = 0
         self.lastTestPerf = 0
         
+        self.folder_name = folder_name
+        self.text_file = open(self.folder_name+"result_best_valid.txt",'a')
+        self.text_file.close()
+        
         
 
         
         
-    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array,valid_array) :
+    def  saveExperiment(self, trainPerformance : float,validPerformance : float,testPerformance : float, params, train_array, valid_array, test_arr) :
         self.params.append(params)
         self.lastTrainPerf = trainPerformance
         self.lastTrainStd = np.std(np.array(train_array))
@@ -89,6 +93,8 @@ class Results():
             self.bestValidStd = np.std(np.array(valid_array))
             self.bestTestedModel=testPerformance
             self.bestTestParams=params
+            self.saveLastValidRes(train_array, valid_array, test_arr)
+            
         
         train_array = np.array(train_array)
         if all(item > 0 for item in train_array):
@@ -148,7 +154,32 @@ class Results():
         plt.close()
                 
                 
-                    
+    def saveLastValidRes(self, train_array, valid_array, test_arr):
+        text = ""
+        text += "Train Results\n"
+        for elt in train_array :
+            if elt>0 :
+                text += "+{}\n".format(elt)
+            else :
+                text += "{}\n".format(elt)
+        
+        text += "\n\nValid Results\n"
+        for elt in valid_array :
+            if elt>0 :
+                text += "+{}\n".format(elt)
+            else :
+                text += "{}\n".format(elt)
+                
+        text += "\n\nTest Results\n"
+        for elt in valid_array :
+            if elt>0 :
+                text += "+{}\n".format(elt)
+            else :
+                text += "{}\n".format(elt)
+        
+        self.text_file = open(self.folder_name+"result_best_valid.txt",'w')
+        self.text_file.write(text)
+        self.text_file.close()
         
         
         

@@ -3,7 +3,7 @@ class Wallet() :
 
     """ Encapsulates all current ressources and exchanges of ressources """
 
-    def __init__(self, initMoney : float = 200, initBitcoins : float = 0, fees : float = 5) :
+    def __init__(self, initMoney : float = 100, initBitcoins : float = 0, fees : float = 5) :
             # Check types and values
         assert isinstance(initMoney, (int, float)), f"[Type Error] :: <initMoney> should be an integer or a float  (got '{type(initMoney)}' instead)."
         assert initMoney >= 0, f"[Value Error] :: <initMoney> should be > 0 (got '{initMoney}' instead)."

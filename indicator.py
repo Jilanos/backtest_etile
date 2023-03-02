@@ -19,7 +19,7 @@ def extremaLocal(array, maxim : bool = True):
     return res == 1
 
 def findLastExtrema(array, val_min, val_max, maxim : bool = True, n : int = 2):
-    array_inverted_0 = array[::-1]
+    array_inverted_0 = np.copy(array)#[::-1]
     indice = 0
     found_at_least_one = False
     best_one = False

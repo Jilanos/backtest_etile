@@ -39,9 +39,17 @@ class Optimizer() :
 
     def __init__(self, data : Data, policy : type,ignoreTimer : int = 50,data_name : str="Results") :
         # Todo : Ensure variable types and values
+        path=os.getcwd()
+        self.folder_name=path+"/Results/"+data_name+"/"
+        if not os.path.exists(self.folder_name):
+            os.makedirs(self.folder_name)
+        self.text_file = open(self.folder_name+"log.txt",'a')
+        self.text_file.close()
+        
+        
         self._data = data # The data to be used
         self._policyClass = policy # The policy class to optimize
-        self._results = Results()
+        self._results = Results(self.folder_name)
         # optuna.logging.set_verbosity(optuna.logging.WARNING)
         self._study = optuna.create_study(direction="maximize") # The Optuna data structure to be used for the hyper-parameters tuning
         self.trainPerformances = [] # Save training performances over time. This is useful to know how much the model fits the training data.
@@ -181,7 +189,7 @@ class Optimizer() :
             for ind in range(7):
                 self.paramImpact[ind].append(np.mean(self.paramTemp[ind]))
         
-        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr,valid_arr)
+        self._results.saveExperiment(trainPerformance, validPerformance, testPerformance, params, train_arr,valid_arr, test_arr)
 
 #             self.bestTestParams=params
 
@@ -284,55 +292,54 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    for t in [1,3,5]:#,15]:,3,5
+    for t in [5]:#,15]:,3,5
         ignoreTimer=150
         #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
-        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=10,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
+        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4, interval_str="{}m".format(t), numPartitions=10,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
         #création des indicateurs pertinents pour la policy
         indices,data.ratio=createIndicator_bis(data)#self._data
         
-        for z in [1,3]:
-            for e in [5,7.5,10]:
-                hyperP = {
-                    "Theta" : 3,
-                    "Theta_bis" : 3,
-                    "Theta_der" : 3,
-                    "Theta_der2" : 3,
-                    "Theta_RSI" : 14,
-                    "Theta_C" : 200,
-                    "SL_max" : e/10.,
-                    "SL_min" : z/10}
-                indices,data.ratio = Init_indicator(indices, data, hyperP)
-                indices=addIndicator(indices,data.ratio, hyperP)
-        #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
-        indices=indices[ignoreTimer:]
-        data.data=data.data[ignoreTimer:]  
-
-        # hyperP = {
-        #     "Theta" : 3,
-        #     "Theta_bis" : 3,
-        #     "Theta_der" : 3,
-        #     "Theta_der2" : 3,
-        #     "Theta_RSI" : 14,
-        #     "Theta_C" : 200,
-        #     "SL_max" : 1,
-        #     "SL_min" : 0.1}
-        # indices,data.ratio = Init_indicator(indices, data, hyperP)
-        # indices=addIndicator(indices,data.ratio, hyperP)
+        # for z in [1,3]:
+        #     for e in [5,7.5,10]:
+        #         hyperP = {
+        #             "Theta" : 3,
+        #             "Theta_bis" : 3,
+        #             "Theta_der" : 3,
+        #             "Theta_der2" : 3,
+        #             "Theta_RSI" : 14,
+        #             "Theta_C" : 200,
+        #             "SL_max" : e/10.,
+        #             "SL_min" : z/10}
+        #         indices,data.ratio = Init_indicator(indices, data, hyperP)
+        #         indices=addIndicator(indices,data.ratio, hyperP)
         # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
         # indices=indices[ignoreTimer:]
-        # data.data=data.data[ignoreTimer:]
+        # data.data=data.data[ignoreTimer:]  
+
+        hyperP = {
+            "Theta" : 3,
+            "Theta_bis" : 3,
+            "Theta_der" : 3,
+            "Theta_der2" : 3,
+            "Theta_RSI" : 14,
+            "Theta_C" : 200,
+            "SL_max" : 1,
+            "SL_min" : 0.2}
+        indices,data.ratio = Init_indicator(indices, data, hyperP)
+        indices=addIndicator(indices,data.ratio, hyperP)
+        #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+        indices=indices[ignoreTimer:]
+        data.data=data.data[ignoreTimer:]
             
-    
+
         for j in range(len(data.data)):
             data.data[j].indic=indices[j]
         print("Indices créés")
     
-
-        for j in range(2):
-            duree_min = 10
+        for j in range(1):
+            duree_min = 2
             plt.close("all")
             train_number=0
             new_id = findLastId()
@@ -387,7 +394,10 @@ low = np.array(data.getValueStream_indic(hyperP, "lowV"))
 TP_max = np.array(data.getValueStream_indic(hyperP, "maxi_proche"))/100.*close + close
 TP_min = -np.array(data.getValueStream_indic(hyperP, "mini_proche"))/100.*close + close
 
-unpourcent = close*1.01
+unpourcent = close*1.0075
+unpourcent_b = close*1.003
+
+x = np.arange(len(close))+0.5
 
 
 for j in range(len(high)):
@@ -398,9 +408,10 @@ for j in range(len(high)):
     ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
     ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
 #ax1.plot(TP_max, 'r')#ls ='--'
-ax1.plot(TP_max,c = 'green', marker = "x", ls = "none")
-ax1.plot(TP_min,c = 'red', marker = "x", ls = "none")
+ax1.plot(x,TP_max,c = 'green', marker = "x", ls = "none")
+ax1.plot(x,TP_min,c = 'red', marker = "x", ls = "none")
 #ax1.plot(unpourcent, 'b')
+plt.fill_between(x, unpourcent,unpourcent_b, color='b', alpha = 0.3)
 # ax1.plot(stdB, 'r', ls ='--')
 # ax2.plot(MACD, 'blue' )
 # ax2.plot(MACD_s, 'orange' )
@@ -415,68 +426,105 @@ ax1.set_xlabel('Unité de temps',fontsize=20)
 ax1.set_ylabel('Prix ($)',fontsize=20)
 plt.grid()
 
+
 #%%
 plt.close("all")
-# def findLastExtrema(array, val_min, val_max, maxim : bool = True, n : int = 2):
-#     array_inverted_0 = array[::-1]
-#     indice = 0
-#     found_at_least_one = False
-#     best_one = False
-#     for j in range(n):
-#         if array_inverted_0[j]>val_max :
-#             return val_max
-#         else :
-#             if  (array_inverted_0[j]>np.max([val_min,best_one]) and found_at_least_one) or (array_inverted_0[j]>val_min and not(found_at_least_one)):
-#                 best_one = array_inverted_0[j]
-#                 found_at_least_one = True
-#     indice = n
-#     while (array_inverted_0[indice]<=val_max) and indice<len(array_inverted_0)-1-n:
-#         if (array_inverted_0[indice]>np.max([best_one,val_min])and found_at_least_one) or  (array_inverted_0[indice]>val_min and not(found_at_least_one)):
-#             if extremaLocal(array_inverted_0[indice-n:indice+n+1], maxim):
-#                 best_one = array_inverted_0[indice]
-#                 found_at_least_one = True
-#         indice += 1
-#     if not(found_at_least_one):
-#         return val_max
-#     else:
-#         return best_one
+def findLastExtrema(array, val_min, val_max, maxim : bool = True, n : int = 2):
+    array_inverted_0 = np.copy(array)#[::-1]
+    indice = 0
+    found_at_least_one = False
+    pos_extrema = False
+    best_one = False
+    for j in range(n):
+        if array_inverted_0[j]>val_max :
+            return val_max, pos_extrema
+        else :
+            if  (array_inverted_0[j]>np.max([val_min,best_one]) and found_at_least_one) or (array_inverted_0[j]>val_min and not(found_at_least_one)):
+                best_one = array_inverted_0[j]
+                found_at_least_one = True
+                pos_extrema = j
+    indice = n
+    while (array_inverted_0[indice]<=val_max) and indice<len(array_inverted_0)-1-n:
+        if (array_inverted_0[indice]>np.max([best_one,val_min])and found_at_least_one) or  (array_inverted_0[indice]>val_min and not(found_at_least_one)):
+            if extremaLocal(array_inverted_0[indice-n:indice+n+1], maxim):
+                best_one = array_inverted_0[indice]
+                found_at_least_one = True
+                pos_extrema = j
+        indice += 1
+    if not(found_at_least_one):
+        return val_max, pos_extrema
+    else:
+        return best_one, pos_extrema
 
-# def extremaLocal(array, maxim : bool = True):
-#     indice_milieu = int(np.round(len(array)/2))
-#     arr = np.concatenate((array[:indice_milieu] , array[indice_milieu+1:]))
-#     val_milieu = array[indice_milieu]
-#     res = 1
-#     if maxim :
-#         for elt in arr:
-#             if elt >= val_milieu :
-#                 res *=0
-#     else :
-#         for elt in arr:
-#             if elt <= val_milieu :
-#                 res *=0
-#     return res == 1
+def extremaLocal(array, maxim : bool = True):
+    indice_milieu = int(np.round(len(array)/2))
+    arr = np.concatenate((array[:indice_milieu] , array[indice_milieu+1:]))
+    val_milieu = array[indice_milieu]
+    res = 1
+    if maxim :
+        for elt in arr:
+            if elt >= val_milieu :
+                res *=0
+    else :
+        for elt in arr:
+            if elt <= val_milieu :
+                res *=0
+    return res == 1
 n = 2
+fig, ax1 = plt.subplots(figsize=(20,11))
 
 close = np.array(data.getValueStream_indic(hyperP, "closeV"))*1000
+ope = np.array(data.getValueStream_indic(hyperP, "openV"))*1000
+high = np.array(data.getValueStream_indic(hyperP, "highV"))*1000
+low = np.array(data.getValueStream_indic(hyperP, "lowV"))*1000
+
+x = np.arange(len(close))+0.5
+
 maxi = close + np.array(data.getValueStream_indic(hyperP, "maxi_proche"))/100 * close 
-mini = close + np.array(data.getValueStream_indic(hyperP, "mini_proche"))/100 * close 
+mini = close - np.array(data.getValueStream_indic(hyperP, "mini_proche"))/100 * close 
 
-plt.plot(close,'k')
-plt.plot(maxi,c = 'green', marker = "x", ls = "none")
+plt.grid()
+plt.show()
+plt.plot(x,maxi,c = 'green', marker = "x", ls = "none")
+plt.plot(x,mini,c = 'red', marker = "x", ls = "none")
 
-# l = 40
-# for i, elt in enumerate(close):
-#     if i > l and i < len(close)-n-2:
-#         # if extremaLocal(close[i-n:i+n+1], True):
-#         #     plt.scatter(i,elt,c = 'red', marker = 'x')
-#         # if extremaLocal(close[i-n:i+n+1], False):
-#         #     plt.scatter(i,elt,c = 'green', marker = 'x')
-#         tp_min = -(close[i-l:i+1]-elt)/elt*100   
-#         tp_max = (close[i-l:i+1]-elt)/elt*100   
-#         lastEX_min = findLastExtrema(tp_min, 0.2, 1, maxim = True, n = 2)
-#         lastEX_max = findLastExtrema(tp_max, 0.2, 1, maxim = True, n = 2)
-#         plt.scatter(i,+lastEX_max/100*elt+elt, c = 'green', marker = 'x')
-#         plt.scatter(i,-lastEX_min/100*elt+elt, c = 'red', marker = 'x')
+plt.title("indicateur",fontsize=30, fontweight = 'bold')
+
+for j in range(len(high)):
+    if close[j]>ope[j]:
+        c='green'
+    else:
+        c='red'
+    ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
+    ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
+    
+
+fig, ax1 = plt.subplots(figsize=(20,11))   
+ 
+
+plt.title("local",fontsize=30, fontweight = 'bold')
+
+for j in range(len(high)):
+    if close[j]>ope[j]:
+        c='green'
+    else:
+        c='red'
+    ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
+    ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
+    
+   
+l = 107
+last_extrema_pos = False
+for i, elt in enumerate(close):
+    if i > l and i < len(close)-n-2:
+        tp_min = -(low[i-l:i+1]-elt)/elt*100   
+        tp_max = (high[i-l:i+1]-elt)/elt*100   
+        tp_min = tp_min[::-1]
+        tp_max = tp_max[::-1]
+        lastEX_min, pos = findLastExtrema(tp_min, 0.2, 1, maxim = True, n = 2)
+        lastEX_max, pos = findLastExtrema(tp_max, 0.2, 1, maxim = True, n = 2)
+        plt.scatter(i+0.5,+lastEX_max/100*elt+elt, c = 'green', marker = 'x')
+        plt.scatter(i+0.5,-lastEX_min/100*elt+elt, c = 'red', marker = 'x')
 plt.grid()
 plt.show()
 
