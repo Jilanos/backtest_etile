@@ -5,11 +5,11 @@ from policy import Policy, Policy_01, Policy_02
 from agent import Agent
 from data import loadData, Data
 import matplotlib.pyplot as plt
+import numpy as np 
 import optuna
 from optuna import Trial
 import pickle # Save and load data to and from storage
 import random
-import numpy as np 
 from termcolor import colored
 import json
 

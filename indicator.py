@@ -3,7 +3,47 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def extremaLocal(array, maxim : bool = True):
+    indice_milieu = int(np.round(len(array)/2))
+    arr = np.concatenate((array[:indice_milieu] , array[indice_milieu+1:]))
+    val_milieu = array[indice_milieu]
+    res = 1
+    if maxim :
+        for elt in arr:
+            if elt >= val_milieu :
+                res *=0
+    else :
+        for elt in arr:
+            if elt <= val_milieu :
+                res *=0
+    return res == 1
 
+def findLastExtrema(array, val_min, val_max, maxim : bool = True, n : int = 2):
+    array_inverted_0 = array[::-1]
+    indice = 0
+    found_at_least_one = False
+    best_one = False
+    for j in range(n):
+        if array_inverted_0[j]>val_max :
+            return val_max
+        else :
+            if  (array_inverted_0[j]>np.max([val_min,best_one]) and found_at_least_one) or (array_inverted_0[j]>val_min and not(found_at_least_one)):
+                best_one = array_inverted_0[j]
+                found_at_least_one = True
+    indice = n
+    while (array_inverted_0[indice]<=val_max) and indice<len(array_inverted_0)-1-n:
+        if (array_inverted_0[indice]>np.max([best_one,val_min])and found_at_least_one) or  (array_inverted_0[indice]>val_min and not(found_at_least_one)):
+            if extremaLocal(array_inverted_0[indice-n:indice+n+1], maxim):
+                best_one = array_inverted_0[indice]
+                found_at_least_one = True
+        indice += 1
+    if not(found_at_least_one):
+        return val_max
+    else:
+        return best_one
+
+    
+    
 
 def key_hyper_param_influents(hyper_params : dict):
     key="key_"
@@ -95,7 +135,7 @@ def Init_indicator(indicateur,data,params):
     openData = data.getValueStream('open')
     highData = data.getValueStream('high')
     lowData = data.getValueStream('low')
-    ratio =np.max(closeData)
+    ratio = np.max(closeData)
     closeData /= ratio
     highData /= ratio
     openData /= ratio
@@ -239,22 +279,46 @@ def addIndicator(indicateurs,ratio ,hyperP : dict()):
         
     if not(indicateurs[-1].calculated(hyperP,'maxi_proche')):
         for i in range(len(indicateurs)):
-            close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
-            value_int = np.max([indicateurs[i-j].get_Indicator(hyperP,"highV") for j in range(24)])
-            value = abs(value_int-close_act)/close_act*100
-            if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
-                value = (hyperP["SL_max"] + hyperP["SL_min"])/2
+            if i<110 : 
+                value = (hyperP["SL_max"])
+            else :
+                val = indicateurs[i].get_Indicator(hyperP,"closeV")
+                value_int = [(indicateurs[i-j].get_Indicator(hyperP,"highV")-val)/val*100 for j in range(108)]
+                value = findLastExtrema(value_int, hyperP["SL_min"], hyperP["SL_max"], maxim = True, n = 2)
+
             indicateurs[i].addIndicator(hyperP,value,"maxi_proche")   
-     
+            
         
     if not(indicateurs[-1].calculated(hyperP,'mini_proche')):
         for i in range(len(indicateurs)):
-            close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
-            value_int = np.min([indicateurs[i-j].get_Indicator(hyperP,"lowV") for j in range(24)])
-            value = abs(value_int-close_act)/close_act*100
-            if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
-                value = (hyperP["SL_max"] + hyperP["SL_min"])/2
-            indicateurs[i].addIndicator(hyperP,value,"mini_proche")     
+            if i<110 : 
+                value = (hyperP["SL_max"])
+            else :
+                val = indicateurs[i].get_Indicator(hyperP,"closeV")
+                value_int = [-(indicateurs[i-j].get_Indicator(hyperP,"lowV")-val)/val*100 for j in range(108)]
+                value = findLastExtrema(value_int, hyperP["SL_min"], hyperP["SL_max"], maxim = True, n = 2)
+
+            indicateurs[i].addIndicator(hyperP,value,"mini_proche")               
+   
+    
+    # if not(indicateurs[-1].calculated(hyperP,'maxi_proche')):
+    #     for i in range(len(indicateurs)):
+    #         close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
+    #         value_int = np.max([indicateurs[i-j].get_Indicator(hyperP,"highV") for j in range(24)])
+    #         value = abs(value_int-close_act)/close_act*100
+    #         if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
+    #             value = (hyperP["SL_max"] + hyperP["SL_min"])/2
+    #         indicateurs[i].addIndicator(hyperP,value,"maxi_proche")   
+     
+        
+    # if not(indicateurs[-1].calculated(hyperP,'mini_proche')):
+    #     for i in range(len(indicateurs)):
+    #         close_act = indicateurs[i].get_Indicator(hyperP,"closeV")
+    #         value_int = np.min([indicateurs[i-j].get_Indicator(hyperP,"lowV") for j in range(24)])
+    #         value = abs(value_int-close_act)/close_act*100
+    #         if value > hyperP["SL_max"] or value < hyperP["SL_min"]:
+    #             value = (hyperP["SL_max"] + hyperP["SL_min"])/2
+    #         indicateurs[i].addIndicator(hyperP,value,"mini_proche")   
             
         
     if not(indicateurs[-1].calculated(hyperP,'TPV')):

@@ -4,7 +4,7 @@ from wallet import Wallet
 from policy import Policy, Policy_01, Policy_02, Policy_03
 from agent import Agent
 from data import Data, loadData#, calculate_ema, computeRSI, createIndicatorDICO,createIndicator, addIndicator
-from indicator import calculate_ema, computeRSI,createIndicator_bis, addIndicator, Init_indicator
+from indicator import calculate_ema, computeRSI,createIndicator_bis, addIndicator, Init_indicator, findLastExtrema, extremaLocal
 from Results import Results
 import matplotlib.pyplot as plt
 import optuna
@@ -284,17 +284,17 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    for t in [5]:#,15]:,3,5
+    for t in [1,3,5]:#,15]:,3,5
         ignoreTimer=150
-        #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
-        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=5,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
+        #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
+        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=10,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
         #création des indicateurs pertinents pour la policy
         indices,data.ratio=createIndicator_bis(data)#self._data
         
-        for z in [3,4,5,6]:
-            for e in [7,8,9,10]:
+        for z in [1,3]:
+            for e in [5,7.5,10]:
                 hyperP = {
                     "Theta" : 3,
                     "Theta_bis" : 3,
@@ -318,7 +318,7 @@ if __name__ == "__main__" :
         #     "Theta_RSI" : 14,
         #     "Theta_C" : 200,
         #     "SL_max" : 1,
-        #     "SL_min" : 0.4}
+        #     "SL_min" : 0.1}
         # indices,data.ratio = Init_indicator(indices, data, hyperP)
         # indices=addIndicator(indices,data.ratio, hyperP)
         # #suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
@@ -330,15 +330,16 @@ if __name__ == "__main__" :
             data.data[j].indic=indices[j]
         print("Indices créés")
     
-        
-        for j in range(5):
+
+        for j in range(2):
+            duree_min = 10
             plt.close("all")
             train_number=0
             new_id = findLastId()
-            opti_name="{}__TEST_timeplot_{}m_{}".format(new_id,t,j+1)
+            opti_name="{}__SL_clean_tf_{}m_dur_{}".format(new_id,t,duree_min)
             #opti_name="test"
             optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
-            optimizer.fit(60*15)
+            optimizer.fit(60*duree_min)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
 
@@ -361,7 +362,7 @@ from matplotlib.patches import Rectangle
 
 
 fig, ax1 = plt.subplots(figsize=(20,11))
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 #ax2.plot(np.array(data.getValueStream_indic(hyperP, "std_A"))/np.array(data.getValueStream_indic(hyperP, "std_B")),color='gray')
 #ax1.plot(data.getValueStream("close"))
 close = np.array(data.getValueStream("close"))
@@ -375,11 +376,20 @@ high = np.array(data.getValueStream_indic(hyperP, "highV"))
 low = np.array(data.getValueStream_indic(hyperP, "lowV"))
 
 
-RSI = np.array(data.getValueStream_indic(hyperP, "RSI_stoch"))
-MACD_cross = np.array(data.getValueStream_indic(hyperP, "MACD_crossing"))
-MACD = np.array(data.getValueStream_indic(hyperP, "MACD"))
-MACD_s = np.array(data.getValueStream_indic(hyperP, "MACD_signal"))
-trend = np.array(data.getValueStream_indic(hyperP, "close_moy_C"))
+# RSI = np.array(data.getValueStream_indic(hyperP, "RSI_stoch"))
+# MACD_cross = np.array(data.getValueStream_indic(hyperP, "MACD_crossing"))
+# MACD = np.array(data.getValueStream_indic(hyperP, "MACD"))
+# MACD_s = np.array(data.getValueStream_indic(hyperP, "MACD_signal"))
+# trend = np.array(data.getValueStream_indic(hyperP, "close_moy_C"))
+
+
+
+TP_max = np.array(data.getValueStream_indic(hyperP, "maxi_proche"))/100.*close + close
+TP_min = -np.array(data.getValueStream_indic(hyperP, "mini_proche"))/100.*close + close
+
+unpourcent = close*1.01
+
+
 for j in range(len(high)):
     if close[j]>ope[j]:
         c='green'
@@ -387,7 +397,10 @@ for j in range(len(high)):
         c='red'
     ax1.plot([j+0.5,j+0.5],[low[j],high[j]], c)
     ax1.add_patch(Rectangle((j, min(close[j],ope[j])), 1, max(close[j],ope[j])-min(close[j],ope[j]),facecolor =c))
-ax1.plot(trend, 'r', ls ='--')
+#ax1.plot(TP_max, 'r')#ls ='--'
+ax1.plot(TP_max,c = 'green', marker = "x", ls = "none")
+ax1.plot(TP_min,c = 'red', marker = "x", ls = "none")
+#ax1.plot(unpourcent, 'b')
 # ax1.plot(stdB, 'r', ls ='--')
 # ax2.plot(MACD, 'blue' )
 # ax2.plot(MACD_s, 'orange' )
@@ -403,23 +416,67 @@ ax1.set_ylabel('Prix ($)',fontsize=20)
 plt.grid()
 
 #%%
+plt.close("all")
+# def findLastExtrema(array, val_min, val_max, maxim : bool = True, n : int = 2):
+#     array_inverted_0 = array[::-1]
+#     indice = 0
+#     found_at_least_one = False
+#     best_one = False
+#     for j in range(n):
+#         if array_inverted_0[j]>val_max :
+#             return val_max
+#         else :
+#             if  (array_inverted_0[j]>np.max([val_min,best_one]) and found_at_least_one) or (array_inverted_0[j]>val_min and not(found_at_least_one)):
+#                 best_one = array_inverted_0[j]
+#                 found_at_least_one = True
+#     indice = n
+#     while (array_inverted_0[indice]<=val_max) and indice<len(array_inverted_0)-1-n:
+#         if (array_inverted_0[indice]>np.max([best_one,val_min])and found_at_least_one) or  (array_inverted_0[indice]>val_min and not(found_at_least_one)):
+#             if extremaLocal(array_inverted_0[indice-n:indice+n+1], maxim):
+#                 best_one = array_inverted_0[indice]
+#                 found_at_least_one = True
+#         indice += 1
+#     if not(found_at_least_one):
+#         return val_max
+#     else:
+#         return best_one
 
-# Spécifier le chemin où les dossiers seront enregistrés
-# current_directory = os.getcwd()
-# os.chdir('Results')
-directory_path = os.getcwd()
+# def extremaLocal(array, maxim : bool = True):
+#     indice_milieu = int(np.round(len(array)/2))
+#     arr = np.concatenate((array[:indice_milieu] , array[indice_milieu+1:]))
+#     val_milieu = array[indice_milieu]
+#     res = 1
+#     if maxim :
+#         for elt in arr:
+#             if elt >= val_milieu :
+#                 res *=0
+#     else :
+#         for elt in arr:
+#             if elt <= val_milieu :
+#                 res *=0
+#     return res == 1
+n = 2
 
-# Obtenir une liste de tous les sous-dossiers
-subdirs = [int(d.split('__')[0]) for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
+close = np.array(data.getValueStream_indic(hyperP, "closeV"))*1000
+maxi = close + np.array(data.getValueStream_indic(hyperP, "maxi_proche"))/100 * close 
+mini = close + np.array(data.getValueStream_indic(hyperP, "mini_proche"))/100 * close 
 
-# Trouver le dernier identifiant en incrémentant de 1
-if subdirs:
-    last_id = max(subdirs) + 1
-else:
-    last_id = 1
+plt.plot(close,'k')
+plt.plot(maxi,c = 'green', marker = "x", ls = "none")
 
-
-# Concaténer l'identifiant, deux tirets, et le texte de votre choix pour former le nom de dossier final
-folder_name = f"{last_id}__anythingoverhere_m5"
-
+# l = 40
+# for i, elt in enumerate(close):
+#     if i > l and i < len(close)-n-2:
+#         # if extremaLocal(close[i-n:i+n+1], True):
+#         #     plt.scatter(i,elt,c = 'red', marker = 'x')
+#         # if extremaLocal(close[i-n:i+n+1], False):
+#         #     plt.scatter(i,elt,c = 'green', marker = 'x')
+#         tp_min = -(close[i-l:i+1]-elt)/elt*100   
+#         tp_max = (close[i-l:i+1]-elt)/elt*100   
+#         lastEX_min = findLastExtrema(tp_min, 0.2, 1, maxim = True, n = 2)
+#         lastEX_max = findLastExtrema(tp_max, 0.2, 1, maxim = True, n = 2)
+#         plt.scatter(i,+lastEX_max/100*elt+elt, c = 'green', marker = 'x')
+#         plt.scatter(i,-lastEX_min/100*elt+elt, c = 'red', marker = 'x')
+plt.grid()
+plt.show()
 
