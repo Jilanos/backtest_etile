@@ -173,7 +173,8 @@ class Policy_02(Policy) :
         self.entryPrice=[]
         self.wins=[]
         self.loss=[]
-        self.moneyToBet = 100
+        self.moneyToBet = 100.
+        self.riskPourcent = 1.
         self.params= {}
         
         self.weight=[]
@@ -185,6 +186,7 @@ class Policy_02(Policy) :
 
         self.params = {
             "TP" : trial.suggest_int("TP", 8, 35)/10.,#trial.suggest_float('TP',0.2,5),
+            "RR" : trial.suggest_int("RR", 12, 35)/10.,#trial.suggest_float('TP',0.2,5),
             #"SL" : trial.suggest_int("SL", 2, 8)/10,#trial.suggest_float('SL',1,8),
             #"buy_adx" : trial.suggest_int("buy_adx", 20, 50),#IntParameter(20, 50, default=32, space='buy')
             #"buy_fastd" : trial.suggest_int("buy_fastd", 15, 45),#buy_fastd = IntParameter(15, 45, default=30, space='buy')
@@ -241,12 +243,12 @@ class Policy_02(Policy) :
         if val == 1 :
             self.entryPrice = [self.count-1, priceRegularized]
             self.weight.append(poids)
-            return "Long", self.moneyToBet, self.params["TP"], indic.get_Indicator(param, "mini_proche")
+            return "Long", self.riskPourcent*100/indic.get_Indicator(param, "mini_proche"), self.params["RR"]*indic.get_Indicator(param, "mini_proche"), indic.get_Indicator(param, "mini_proche")
             #return "Long", self.moneyToBet, self.params["TP"], self.params["SL"]
         elif val == -1:
             self.entryPrice = [self.count-1, priceRegularized]
             self.weight.append(poids)
-            return "Short", self.moneyToBet, self.params["TP"], indic.get_Indicator(param, "maxi_proche")
+            return "Short", self.riskPourcent*100/indic.get_Indicator(param, "maxi_proche"), self.params["RR"]*indic.get_Indicator(param, "maxi_proche"), indic.get_Indicator(param, "maxi_proche")
             #return "Short", self.moneyToBet, self.params["TP"], self.params["SL"]
         else :
             return "", None, None, None

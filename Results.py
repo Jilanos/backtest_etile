@@ -164,23 +164,23 @@ class Results():
         text += "Train Results\n"
         for elt in train_array :
             if elt>0 :
-                text += "+{}\n".format(elt)
+                text += "   +{}\n".format(elt)
             else :
-                text += "{}\n".format(elt)
+                text += "   {}\n".format(elt)
         
         text += "\n\nValid Results\n"
         for elt in valid_array :
             if elt>0 :
-                text += "+{}\n".format(elt)
+                text += "   +{}\n".format(elt)
             else :
-                text += "{}\n".format(elt)
+                text += "   {}\n".format(elt)
                 
         text += "\n\nTest Results\n"
-        for elt in valid_array :
+        for elt in test_arr :
             if elt>0 :
-                text += "+{}\n".format(elt)
+                text += "   +{}\n".format(elt)
             else :
-                text += "{}\n".format(elt)
+                text += "   {}\n".format(elt)
         
         self.text_file = open(self.folder_name+"result_best_valid.txt",'w')
         self.text_file.write(text)
@@ -192,17 +192,17 @@ class Results():
         text = ""
         text += "Train Results\n\n"
         for i,elt in enumerate(train_transac) :
-            text += "Train {}\n".format(i)
+            text += "   Train {}\n".format(i)
             text += elt
         
         text += "\n\n\nValid Results\n"
         for i,elt in enumerate(valid_transac) :
-            text += "Valid {}\n".format(i)
+            text += "   Valid {}\n".format(i)
             text += elt
                 
         text += "\n\nTest Results\n"
         for i,elt in enumerate(test_transac) :
-            text += "Test {}\n".format(i)
+            text += "   Test {}\n".format(i)
             text += elt
         
         self.transac_file = open(self.folder_name+"transactions_best_valid.txt",'w')

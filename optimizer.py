@@ -142,7 +142,7 @@ class Optimizer() :
             tot_array.append(agent.wallet.profit(closeValue))
             transac_array.append(agent.wallet.allTransactions())
         for i in range(len(tot_array)):
-            tot_array[i] = tot_array[i]/UnitCount*self._data.perday
+            tot_array[i] = tot_array[i]/UnitCount*self._data.perday*self._data.numPartitions
         if sav:
             #print(wins+loss)
             
@@ -151,11 +151,11 @@ class Optimizer() :
                 
             else:
                 wr=-1
-            gain=np.round(totalPerformance/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday,decimals=3)
-            tradeRate=np.round((wins+loss)/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday,decimals=2)
+            gain=np.round(totalPerformance/(UnitCount)*self._data.perday,decimals=3)
+            tradeRate=np.round((wins+loss)/(UnitCount)*self._data.perday,decimals=2)
             print(colored("Résultat dans le test final : WR : {}%, gain quotidien {}%, nbr de trades quotidiens : {}".format(wr,gain, tradeRate),"green"))
         #print("totalunit : {}, total value : {}, resultat {}, perday {}".format(UnitCount,totalPerformance,totalPerformance/UnitCount*self._data.perday,self._data.perday))
-        return totalPerformance/(UnitCount-self._data.numPartitions*self.ignoreTimer)*self._data.perday, tot_array, transac_array
+        return totalPerformance/(UnitCount)*self._data.perday, tot_array, transac_array
 
     def optiPrint(self,study, trial):
         global train_number
@@ -294,10 +294,13 @@ class Optimizer() :
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    for t in [5]:#,15]:,3,5
+    time_explore = [5]#,15]:,3,5
+    n_repet = 3
+    duree_min = 15
+    for t in time_explore:
         ignoreTimer=150
         #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
-        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4, interval_str="{}m".format(t), numPartitions=10,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
+        data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10, interval_str="{}m".format(t), numPartitions=10,trainProp = 0.6, validProp = 0.25, testProp  = 0.15, reload=True,ignoreTimer=ignoreTimer)
         data.plot() # and plot it
         print("création des indices ....")
         #création des indicateurs pertinents pour la policy
@@ -340,8 +343,7 @@ if __name__ == "__main__" :
             data.data[j].indic=indices[j]
         print("Indices créés")
     
-        for j in range(1):
-            duree_min = 4
+        for j in range(n_repet):
             plt.close("all")
             train_number=0
             new_id = findLastId()

@@ -38,9 +38,9 @@ class Wallet() :
     
     def addTransaction(self,value):
         if value>0:
-            self.text += "+{}\n".format(value)
+            self.text += "      "+"+{}\n".format(value)
         else :    
-            self.text += "{}\n".format(value)
+            self.text += "      "+"{}\n".format(value)
 
     def buy(self, moneyAmount : float, price : float, applyfees : str) :
             # Check types and values
