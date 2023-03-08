@@ -158,7 +158,7 @@ class Policy_01(Policy) :
             plt.scatter(a[0]-ignoreTimer,a[1],s=60,marker='x',c='r')
             plt.arrow(a[0]-ignoreTimer,a[1],a[2]-a[0],a[3]-a[1],color='r')
         plt.savefig(folder_name+name)
-        #plt.close()
+        plt.close()
 
 
 
@@ -300,7 +300,7 @@ class Policy_02(Policy) :
             ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[4]-a[1], facecolor = 'green', alpha = 0.4))
             ax1.add_patch(Rectangle((a[0]-ignoreTimer, a[1]), a[2]-a[0], a[3]-a[1], facecolor = 'red', alpha = 0.4))
         plt.savefig(folder_name+name)
-        #plt.close()
+        plt.close()
 
 
 class Policy_03(Policy) :

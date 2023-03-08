@@ -1,5 +1,4 @@
 
-
 from wallet import Wallet
 from policy import Policy, Policy_01, Policy_02, Policy_03
 from agent import Agent
@@ -17,11 +16,130 @@ import datetime
 import os
 import time
 import sys
+from optimizer import findLastId
+print("yooo")
 from matplotlib.patches import Rectangle
+
    
 
+t = 5
+n_week = 5
+one_week = 7*24*60
+new_id = findLastId()
+opti_name="{}__backtest_tf_{}m".format(new_id,t)
 
 
+sample_week = int(one_week/t)
+sample_tot = int(sample_week * n_week)
+ignoreTimer=150
+print("loading data")
+#data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
+data = loadData(paire="BTCBUSD", sequenceLength=sample_tot, interval_str="{}m".format(t), numPartitions=n_week,trainProp = 1, validProp = 0, testProp  = 0, reload=True,ignoreTimer=ignoreTimer)
+data.plot() # and plot it
+print("création des indices ....")
+#création des indicateurs pertinents pour la policy
+indices,data.ratio=createIndicator_bis(data)#self._data
+params = {"TP": 2.6, "RR": 1.6, "SL_min": 0.2, "SL_max": 1, "buy_RSI": 4, "sell_RSI": 0}
+hyperP = {
+    "Theta" : 3,
+    "Theta_bis" : 3,
+    "Theta_der" : 3,
+    "Theta_der2" : 3,
+    "Theta_RSI" : 14,
+    "Theta_C" : 200,
+    "SL_max" : params["SL_max"],
+    "SL_min" : params["SL_min"]}
+
+indices,data.ratio = Init_indicator(indices, data, hyperP)
+indices=addIndicator(indices,data.ratio, hyperP)
+#suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+indices=indices[ignoreTimer:]
+data.data=data.data[ignoreTimer:]
+    
+
+for j in range(len(data.data)):
+    data.data[j].indic=indices[j]
+print("Indices créés")
+
+
+    
+optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
+optimizer.backtestage(params)
+
+print('done')
+sys.exit()
+#%%
+
+
+
+
+print(colored("Study launch with {} partitions ".format(data.numPartitions),"green"))
+
+# <budget> : Time allocated to the fit of the models in s # TODO : Handle budget
+    # Optimize the objective
+
+
+dataset = "train"    # Get the proper data
+if (dataset == "train") : closeSequences, highSequences, lowSequences, volumeSequences, indics= data.trainSequences("close"), data.trainSequences("high"), data.trainSequences("low"),data.trainSequences("volume"),data.trainSequences("indic")
+# Compute the performance of the policy on all the sequences
+totalPerformance = 0 # Sum of the performances over all the sequences
+tot_array = []
+UnitCount=0
+paramTemp=[[] for i in range(7)] 
+paramImpact=[[] for i in range(7)]
+count,wins,loss=0,0,0
+for closeSequence, highSequence, lowSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, volumeSequences,indics) :
+       # Instanciate an agent to run the policy of our data
+    wallet = Wallet(fees=0.08)
+    policy = policyClass()
+    policy.params = params # Always use the same params provided as arguments (instead of sampling again)
+    agent = Agent(wallet, policy,ignoreTimer=ignoreTimer)
+        # Run the agent on the data
+    
+    for closeValue, highValue, lowValue, volumValue, indicator in zip(closeSequence, highSequence, lowSequence, volumeSequence,indic) :
+        UnitCount+=1
+        agent.act(indicator, closeValue, highValue, lowValue, volumValue)
+        # TODO : What is sequenceLength for ? Max length of a single sequence or all the sequences ?
+    for elt in policy.weight:
+        for i in range(7):
+            paramTemp[i].append(elt[i])
+
+    wins += len(policy.wins)
+    loss += len(policy.loss)
+    count+=1
+    name = "best_test_"+str(count)+".png"
+    closeSeq=[]
+        
+        
+        
+            
+    for elt in closeSequence:
+        closeSeq.append(elt)
+    
+    policy.plot(closeSeq,folder_name,data.ratio,name=name,ignoreTimer = 0)
+    #print("plot  +  "+ name)
+    totalPerformance += agent.wallet.profit(closeValue)
+    tot_array.append(agent.wallet.profit(closeValue))
+for i in range(len(tot_array)):
+    tot_array[i] = tot_array[i]/UnitCount*data.perday
+
+    
+if wins+loss>0:
+    wr=np.round(wins/(wins+loss)*100,decimals=1)
+    
+else:
+    wr=-1
+
+tot_array = np.array(tot_array)
+gain=np.round(totalPerformance/(UnitCount)*data.perday,decimals=3)
+tradeRate=np.round((wins+loss)/(UnitCount)*data.perday,decimals=2)
+print(colored("Résultat dans le test final : WR : {}%, gain quotidien {}%, nbr de trades quotidiens : {}\nmoyenne des partition : {}, std : {}".format(wr,gain, tradeRate,np.round(np.mean(tot_array),decimals=3), np.round(np.std(tot_array),decimals=4)),"green"))
+#print("totalunit : {}, total value : {}, resultat {}, perday {}".format(UnitCount,totalPerformance,totalPerformance/UnitCount*self._data.perday,self._data.perday))
+out = totalPerformance/(UnitCount-data.numPartitions*ignoreTimer)*data.perday 
+
+
+    
+#%%
 plt.close("all")
 ignoreTimer=200
 data_name="backtest_01fees_RR3_stddiv_test" #20*24*30*4

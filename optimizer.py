@@ -19,6 +19,7 @@ import time
 import sys
 import json
 from scipy.signal import argrelextrema
+from matplotlib.patches import Rectangle
 
 def findLastId():
     current_directory = os.getcwd()
@@ -37,7 +38,7 @@ class Optimizer() :
 
     """ Optimizes the input parameter space and output the best set found as well as intermediary visualization asset of the training """
 
-    def __init__(self, data : Data, policy : type,ignoreTimer : int = 50,data_name : str="Results") :
+    def __init__(self, data : Data, policy : type,ignoreTimer : int = 50,data_name : str="Results", fees : float = 0.01) :
         # Todo : Ensure variable types and values
         path=os.getcwd()
         self.folder_name=path+"/Results/"+data_name+"/"
@@ -46,7 +47,7 @@ class Optimizer() :
         self.text_file = open(self.folder_name+"log.txt",'a')
         self.text_file.close()
         
-        
+        self.fees=fees
         self._data = data # The data to be used
         self._policyClass = policy # The policy class to optimize
         self._results = Results(self.folder_name)
@@ -81,7 +82,40 @@ class Optimizer() :
         self.text_file.write(text+"\n")
         self.text_file.close()
     
+    def backtestage(self,params) : 
+        policy = self._policyClass()
+        policy.params = params
+        self.params.append(params)
+            # Compute performances
+        self.paramTemp=[[] for i in range(7)] 
+        
+        testPerformance, test_arr, test_transac = self.runExperiment(params, "test",sav =True)
+        vide_array = [0 for i in range(self._data.numPartitions)]
+        vide_txt = ["" for i in range(self._data.numPartitions)]
+        self._results.saveExperiment(0, 0, testPerformance, params, vide_array,vide_array, test_arr, vide_txt, vide_txt, test_transac)
+        self._results.plotPerformances(self.folder_name)
+        self._results.plotParams(self.folder_name)
+        fig, ax1 = plt.subplots(figsize = (20,10))
+        plt.title("Gain quotidien moyen pour chaque semaine du backtest",fontweight = 'bold', fontsize=20)
+        plt.ylabel("Gain quotidien (%)", fontsize=15)
+        plt.xlabel("Semaines (dans l'ordre croissant", fontsize=15)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.grid(True)
+        for j, elt in enumerate(test_arr):
+            if elt>0:
+                c='green'
+            else:
+                c='red'
+            ax1.add_patch(Rectangle((j, 0), 1, elt,facecolor =c))
+            #plt.scatter(j,elt)
+        plt.xlim([-0.3, j+1.3])
+        plt.ylim([np.min(test_arr)-0.2, np.max(test_arr)+0.2])
     
+        plt.savefig(self.folder_name + "gain_journaliers.png",bbox_inches='tight')
+
+
+
     def save_param(self):
         self.text_file = open(self.folder_name+"param.txt",'a')
         txtt="Trial: {} ==>  ".format(train_number)+"Last Train: {}%, std : {}".format(np.round(self._results.lastTrainPerf, decimals=3),np.round(self._results.lastTrainStd, decimals=4))+" ; Last Valid: {}%, std : {}".format(np.round(self._results.lastValidPerf, decimals=4),np.round(self._results.lastValidStd, decimals=4))+" => Test: {}%".format(np.round(self._results.lastTestPerf, decimals=4))
@@ -105,12 +139,11 @@ class Optimizer() :
             count,wins,loss=0,0,0
         for closeSequence, highSequence, lowSequence, openSequence, volumeSequence, indic in zip(closeSequences, highSequences, lowSequences, openSequences, volumeSequences,indics) :
                # Instanciate an agent to run the policy of our data
-            wallet = Wallet(fees=0.01)
+            wallet = Wallet(fees=self.fees)
             policy = self._policyClass()
             policy.params = params # Always use the same params provided as arguments (instead of sampling again)
             agent = Agent(wallet, policy,ignoreTimer=self.ignoreTimer)
                 # Run the agent on the data
-            
             for closeValue, highValue, lowValue, volumValue, indicator in zip(closeSequence, highSequence, lowSequence, volumeSequence,indic) :
                 UnitCount+=1
                 agent.act(indicator, closeValue, highValue, lowValue, volumValue)
@@ -290,13 +323,13 @@ class Optimizer() :
     def loadState(self, savePath : str) :
         with open(savePath, "rb") as readFile:
             return pickle.load(readFile)
-
+sys.exit()
 
 if __name__ == "__main__" :
         # Get data to feed to optimizer
-    time_explore = [5]#,15]:,3,5
+    time_explore = [1,3,5,15]#,15]:,3,5
     n_repet = 3
-    duree_min = 15
+    duree_min = 45
     for t in time_explore:
         ignoreTimer=150
         #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
@@ -349,7 +382,7 @@ if __name__ == "__main__" :
             new_id = findLastId()
             opti_name="{}__SL_clean_tf_{}m_dur_{}".format(new_id,t,duree_min)
             #opti_name="test"
-            optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name)
+            optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name, fees = 0.01)
             optimizer.fit(60*duree_min)
             print("Fin algo : {} executions".format(train_number))
             optimizer.print_save("Fin algo : {} executions".format(train_number))
@@ -357,15 +390,52 @@ if __name__ == "__main__" :
     #optimizer.runExperiment(optimizer.bestTestParams,"test",sav=True)
 sys.exit()
 
-#%%
-seq = np.array(data.testSequence("open")[:60])
-maxi = argrelextrema(seq,np.greater)
-maxi_val = seq[maxi[0]]
-mini = argrelextrema(seq,np.less)
-mini_val = seq[mini[0]]
-plt.plot(seq)
-plt.scatter(maxi,maxi_val, c = 'green')
-plt.scatter(mini,mini_val, c = 'red')
+#%%Backtest Script
+
+t = 5
+n_week = 50
+one_week = 7*24*60
+new_id = findLastId()
+opti_name="{}__backtest_tf_{}m".format(new_id,t)
+
+
+sample_week = int(one_week/t)
+sample_tot = int(sample_week * n_week)
+ignoreTimer=150
+print("loading data")
+#data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
+data = loadData(paire="BTCBUSD", sequenceLength=sample_tot, interval_str="{}m".format(t), numPartitions=n_week,trainProp = 0, validProp = 0, testProp  = 1, reload=True,ignoreTimer=ignoreTimer)
+data.plot() # and plot it
+print("création des indices ....")
+#création des indicateurs pertinents pour la policy
+indices,data.ratio=createIndicator_bis(data)#self._data
+params = {"TP": 2.6, "RR": 1.6, "SL_min": 0.2, "SL_max": 1, "buy_RSI": 4, "sell_RSI": 0}
+hyperP = {
+    "Theta" : 3,
+    "Theta_bis" : 3,
+    "Theta_der" : 3,
+    "Theta_der2" : 3,
+    "Theta_RSI" : 14,
+    "Theta_C" : 200,
+    "SL_max" : params["SL_max"],
+    "SL_min" : params["SL_min"]}
+
+indices,data.ratio = Init_indicator(indices, data, hyperP)
+indices=addIndicator(indices,data.ratio, hyperP)
+#suppression des self.ignoreTimer valeurs des data et de l'indicateur permettant d'avoir des moyennes stables
+indices=indices[ignoreTimer:]
+data.data=data.data[ignoreTimer:]
+    
+
+for j in range(len(data.data)):
+    data.data[j].indic=indices[j]
+print("Indices créés")
+
+
+optimizer = Optimizer(data, Policy_02, ignoreTimer=ignoreTimer,data_name=opti_name, fees = 0.035)
+optimizer.backtestage(params)
+
+print('done')
 
 #%%
 plt.close("all")
