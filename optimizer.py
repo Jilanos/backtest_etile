@@ -393,7 +393,7 @@ sys.exit()
 #%%Backtest Script
 
 t = 5
-n_week = 50
+n_week = 8
 one_week = 7*24*60
 new_id = findLastId()
 opti_name="{}__backtest_tf_{}m".format(new_id,t)
@@ -404,7 +404,7 @@ sample_tot = int(sample_week * n_week)
 ignoreTimer=150
 print("loading data")
 #data = loadData(paire="BTCBUSD", sequenceLength=24*30*4*10*3, interval_str="{}m".format(t), numPartitions=3, reload=True,ignoreTimer=ignoreTimer)
-data = loadData(paire="BTCBUSD", sequenceLength=sample_tot, interval_str="{}m".format(t), numPartitions=n_week,trainProp = 0, validProp = 0, testProp  = 1, reload=True,ignoreTimer=ignoreTimer)
+data = loadData(paire="BTCUSDT", sequenceLength=sample_tot, interval_str="{}m".format(t), numPartitions=n_week,trainProp = 0.6, validProp = 0.3, testProp  = 0.1, reload=False,ignoreTimer=ignoreTimer)
 data.plot() # and plot it
 print("création des indices ....")
 #création des indicateurs pertinents pour la policy

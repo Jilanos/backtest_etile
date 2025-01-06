@@ -227,21 +227,22 @@ def loadData(paire : str = "BTCUSDT", sequenceLength : int = 100, interval_str :
     #connect to Binance if no relaod of previous stored data
     binanceClient = Client(apiKey, apiSecretKey)
         # Request data
+    print("pair", paire, "interval_str", interval_str, "duration", duration)
     klines = binanceClient.get_historical_klines(paire, interval_str, duration)
+    #klines = binanceClient.get_historical_klines(symbol=paire, interval=Client.KLINE_INTERVAL_5MINUTE, start_str=str(start_time), end_str=str(end_time))
+    data1 = Data(trainProp=trainProp, validProp=validProp, testProp=testProp, numPartitions=numPartitions,ignoreTimer=ignoreTimer,perday=perday,sequenceLength=sequenceLength)
 
-    data = Data(trainProp=trainProp, validProp=validProp, testProp=testProp, numPartitions=numPartitions,ignoreTimer=ignoreTimer,perday=perday,sequenceLength=sequenceLength)
-
-    print("nombre de datua : {}".format(len(klines)))
+    print("nombre de data : {}".format(len(klines)))
     for line in klines : # klines format : https://python-binance.readthedocs.io/en/latest/binance.html
-        data.addDatum(Datum(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10],[0]))
-    print("nombre de data.data : {}".format(len(data.data)))
+        data1.addDatum(Datum(line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7], line[8], line[9], line[10],[0]))
+    print("nombre de data.data : {}".format(len(data1.data)))
         # Save data locally for future usage
     with open(savePath, "wb") as saveFile:
-        pickle.dump(data, saveFile, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(data1, saveFile, protocol=pickle.HIGHEST_PROTOCOL)
 
         # Return data to user
     print(colored("Data downloaded","green"))
-    return data
+    return data1
 
 
 
